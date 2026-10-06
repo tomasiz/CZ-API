@@ -1,0 +1,21 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Casamiza\Console\TenantCreateCommand;
+use Casamiza\Kernel;
+use Casamiza\Shared\Settings;
+use Dotenv\Dotenv;
+use Symfony\Component\Console\Application;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$root = dirname(__DIR__);
+Dotenv::createImmutable($root)->safeLoad();
+
+$container = Kernel::createContainer(Settings::fromEnv($_ENV + $_SERVER, $root));
+
+$application = new Application('Casamiza', '1.0');
+$application->addCommand($container->get(TenantCreateCommand::class));
+$application->run();

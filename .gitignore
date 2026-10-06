@@ -1,0 +1,7 @@
+/vendor/
+.env
+/storage/logs/*
+!/storage/logs/.gitkeep
+.vite/
+.phpunit.cache/
+.php-cs-fixer.cache

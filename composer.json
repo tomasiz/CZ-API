@@ -1,0 +1,55 @@
+{
+    "name": "casamiza/api",
+    "description": "API REST de Casamiza (SaaS de gestion de conciergerie)",
+    "type": "project",
+    "require": {
+        "php": "^8.4",
+        "lcobucci/jwt": "^5.6",
+        "monolog/monolog": "^3.12",
+        "php-di/php-di": "^7.1",
+        "ramsey/uuid": "^4.9",
+        "robmorgan/phinx": "^0.16.12",
+        "slim/psr7": "^1.8",
+        "slim/slim": "^4.15",
+        "symfony/console": "^8.0",
+        "vlucas/phpdotenv": "^5.7"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.0"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "dev": "bin/dev",
+        "migrate": "bin/php vendor/bin/phinx migrate",
+        "rollback": "bin/php vendor/bin/phinx rollback",
+        "migration:status": "bin/php vendor/bin/phinx status",
+        "test": "bin/php vendor/bin/phpunit",
+        "stan": "bin/php vendor/bin/phpstan analyse --memory-limit=512M",
+        "cs": "bin/php vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "bin/php vendor/bin/php-cs-fixer fix",
+        "check": [
+            "@cs",
+            "@stan",
+            "@test"
+        ],
+        "console": "bin/php bin/console",
+        "seed": "bin/php vendor/bin/phinx seed:run"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Casamiza\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Casamiza\\Tests\\": "tests/"
+        }
+    }
+}
