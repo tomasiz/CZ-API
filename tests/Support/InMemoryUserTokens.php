@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Casamiza\Tests\Support;
 
+use Casamiza\Domain\Team\TokenPurpose;
 use Casamiza\Domain\Team\UserToken;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
 use DateTimeImmutable;
@@ -38,5 +39,14 @@ final class InMemoryUserTokens implements UserTokenRepositoryInterface
         $this->tokens[$id] = new UserToken($t->id, $t->tenantId, $t->userId, $t->purpose, $t->tokenHash, $t->expiresAt, $at);
 
         return true;
+    }
+
+    public function invalidateForUser(string $tenantId, string $userId, TokenPurpose $purpose, DateTimeImmutable $at): void
+    {
+        foreach ($this->tokens as $id => $t) {
+            if ($t->tenantId === $tenantId && $t->userId === $userId && $t->purpose === $purpose && $t->usedAt === null) {
+                $this->tokens[$id] = new UserToken($t->id, $t->tenantId, $t->userId, $t->purpose, $t->tokenHash, $t->expiresAt, $at);
+            }
+        }
     }
 }

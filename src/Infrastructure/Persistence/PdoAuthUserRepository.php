@@ -11,7 +11,7 @@ use DateTimeImmutable;
 /** Requêtes de pré-authentification : chaque requête est bornée par e-mail unique ou par (tenant, utilisateur) vérifiés. */
 final readonly class PdoAuthUserRepository implements AuthUserRepositoryInterface
 {
-    private const COLUMNS = 'u.id, u.tenant_id, u.first_name, u.last_name, u.email, u.password_hash, u.role, u.last_login_at';
+    private const COLUMNS = 'u.id, u.tenant_id, u.first_name, u.last_name, u.email, u.password_hash, u.role, u.status, u.last_login_at';
 
     public function __construct(private Database $database) {}
 

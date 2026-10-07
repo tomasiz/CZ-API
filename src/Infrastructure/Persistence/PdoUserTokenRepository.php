@@ -55,4 +55,17 @@ final readonly class PdoUserTokenRepository implements UserTokenRepositoryInterf
 
         return $statement->rowCount() === 1;
     }
+
+    public function invalidateForUser(string $tenantId, string $userId, TokenPurpose $purpose, DateTimeImmutable $at): void
+    {
+        $this->database->pdo()->prepare(
+            'UPDATE user_tokens SET used_at = :at
+             WHERE tenant_id = :tenant AND user_id = :user AND purpose = :purpose AND used_at IS NULL',
+        )->execute([
+            'at' => DbDate::toDb($at),
+            'tenant' => $tenantId,
+            'user' => $userId,
+            'purpose' => $purpose->value,
+        ]);
+    }
 }

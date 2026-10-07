@@ -22,6 +22,7 @@ return static function (App $app): void {
             $auth->post('/login', [AuthController::class, 'login']);
             $auth->post('/refresh', [AuthController::class, 'refresh']);
             $auth->post('/logout', [AuthController::class, 'logout']);
+            $auth->post('/activation', [AuthController::class, 'inspectActivation']);
             $auth->post('/activate', [AuthController::class, 'activate']);
         })->add(CsrfOriginMiddleware::class);
 
@@ -35,6 +36,7 @@ return static function (App $app): void {
             $api->group('/team', function (RouteCollectorProxy $team): void {
                 $team->post('', [TeamController::class, 'invite']);
                 $team->patch('/{id}', [TeamController::class, 'update']);
+                $team->post('/{id}/invitation', [TeamController::class, 'resendInvitation']);
                 $team->delete('/{id}', [TeamController::class, 'remove']);
             })->add(new RoleMiddleware(Role::Admin));
         })->add(AuthMiddleware::class);

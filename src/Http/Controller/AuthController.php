@@ -43,6 +43,22 @@ final readonly class AuthController
         return $this->respond($response, $this->auth->refresh($token));
     }
 
+    /** Identité du membre invité pour la page d'activation (le jeton, secret de 256 bits, est dans le corps, pas dans l'URL). */
+    public function inspectActivation(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $input = Input::fromBody($request->getParsedBody());
+        $token = $input->string('token', 200);
+        $input->assertValid();
+
+        $user = $this->invitations->inspect($token);
+
+        return $this->json->data($response, [
+            'firstName' => $user->firstName,
+            'lastName' => $user->lastName,
+            'email' => $user->email,
+        ]);
+    }
+
     /** Activation d'un compte invité : le membre choisit son mot de passe avec le jeton reçu par e-mail. */
     public function activate(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {

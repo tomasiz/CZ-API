@@ -15,4 +15,7 @@ interface UserTokenRepositoryInterface
 
     /** Consomme le jeton, de façon atomique. @return bool faux s'il l'était déjà */
     public function markUsed(string $id, DateTimeImmutable $at): bool;
+
+    /** Rend inutilisables tous les jetons encore valides de cet utilisateur pour cet usage (ex. : ancien lien d'invitation). */
+    public function invalidateForUser(string $tenantId, string $userId, TokenPurpose $purpose, DateTimeImmutable $at): void;
 }

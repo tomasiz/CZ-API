@@ -39,6 +39,7 @@ final class TeamTest extends AuthTestCase
             ['POST', '/api/v1/team', ['firstName' => 'N', 'lastName' => 'N', 'email' => 'n@a.test', 'role' => 'manager']],
             ['PATCH', '/api/v1/team/user-manager', ['firstName' => 'X']],
             ['DELETE', '/api/v1/team/user-manager', null],
+            ['POST', '/api/v1/team/user-manager/invitation', null],
         ] as [$method, $uri, $body]) {
             $response = $this->asAdmin($method, $uri, $body, 'marc@a.test');
             self::assertSame(403, $response->getStatusCode(), $method);
@@ -72,6 +73,122 @@ final class TeamTest extends AuthTestCase
         self::assertIsArray($user);
         self::assertSame('manager', $user['user']['role']);
         self::assertSame('Conciergerie A', $user['user']['tenant']['name']);
+    }
+
+    /** @return array{url: string, expiresAt: string, token: string} */
+    private function invitationOf(ResponseInterface $response): array
+    {
+        $data = $this->json($response)['data'];
+        self::assertIsArray($data);
+        $invitation = $data['invitation'];
+        self::assertIsArray($invitation);
+        $matches = [];
+        preg_match('#^' . preg_quote(self::ORIGIN, '#') . '/activate\?token=([a-f0-9]{64})$#', (string) $invitation['url'], $matches);
+
+        return [
+            'url' => (string) $invitation['url'],
+            'expiresAt' => (string) $invitation['expiresAt'],
+            'token' => $matches[1] ?? self::fail("Lien d'activation mal formé."),
+        ];
+    }
+
+    public function testInvitationReturnsTheActivationLinkToTheAdmin(): void
+    {
+        $response = $this->asAdmin('POST', '/api/v1/team', ['firstName' => 'Nina', 'lastName' => 'Nouvelle', 'email' => 'nina@a.test', 'role' => 'manager']);
+        $invitation = $this->invitationOf($response);
+
+        self::assertSame('2026-10-14T09:00:00+00:00', $invitation['expiresAt']);
+
+        // Le lien renvoyé est utilisable tel quel, sans e-mail.
+        $activate = $this->request($this->app, 'POST', '/api/v1/auth/activate', $this->browser(), ['token' => $invitation['token'], 'password' => 'un-mot-de-passe-solide']);
+        self::assertSame(204, $activate->getStatusCode());
+        self::assertSame(200, $this->login('nina@a.test', 'un-mot-de-passe-solide')->getStatusCode());
+    }
+
+    public function testTheLinkIsNeverExposedByTheTeamListing(): void
+    {
+        $invitation = $this->invitationOf($this->asAdmin('POST', '/api/v1/team', ['firstName' => 'N', 'lastName' => 'N', 'email' => 'n@a.test', 'role' => 'manager']));
+
+        $listing = (string) $this->asAdmin('GET', '/api/v1/team')->getBody();
+
+        self::assertStringNotContainsString($invitation['token'], $listing);
+        self::assertStringNotContainsString('invitation', $listing);
+    }
+
+    public function testResendingGivesANewLinkAndKillsThePreviousOne(): void
+    {
+        $first = $this->invitationOf($this->asAdmin('POST', '/api/v1/team', ['firstName' => 'N', 'lastName' => 'N', 'email' => 'n@a.test', 'role' => 'manager']));
+        $id = $this->idOfInvited('n@a.test');
+
+        $this->clock->advance('+3 days');
+        $response = $this->asAdmin('POST', "/api/v1/team/{$id}/invitation");
+        $second = $this->invitationOf($response);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertNotSame($first['token'], $second['token']);
+        self::assertSame('2026-10-17T09:00:00+00:00', $second['expiresAt']);
+
+        $old = $this->request($this->app, 'POST', '/api/v1/auth/activate', $this->browser(), ['token' => $first['token'], 'password' => 'un-mot-de-passe-solide']);
+        self::assertSame('invalid_activation_token', $this->errorCode($old));
+
+        $new = $this->request($this->app, 'POST', '/api/v1/auth/activate', $this->browser(), ['token' => $second['token'], 'password' => 'un-mot-de-passe-solide']);
+        self::assertSame(204, $new->getStatusCode());
+    }
+
+    public function testResendingIsRefusedOnceTheAccountIsActive(): void
+    {
+        $response = $this->asAdmin('POST', '/api/v1/team/user-manager/invitation');
+
+        self::assertSame(409, $response->getStatusCode());
+        self::assertSame('member_already_active', $this->errorCode($response));
+    }
+
+    public function testResendingCannotReachAnotherTenant(): void
+    {
+        $response = $this->asAdmin('POST', '/api/v1/team/user-b/invitation');
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertSame('user_not_found', $this->errorCode($response));
+    }
+
+    private function idOfInvited(string $email): string
+    {
+        foreach ($this->users->users as $user) {
+            if ($user->email === $email) {
+                return $user->id;
+            }
+        }
+        self::fail("Membre {$email} introuvable.");
+    }
+
+    public function testActivationPageCanLookUpTheInvitedMemberWithoutConsumingTheToken(): void
+    {
+        $this->asAdmin('POST', '/api/v1/team', ['firstName' => 'Nina', 'lastName' => 'Nouvelle', 'email' => 'nina@a.test', 'role' => 'manager']);
+        $token = $this->notifier->sent['nina@a.test'];
+
+        $first = $this->request($this->app, 'POST', '/api/v1/auth/activation', $this->browser(), ['token' => $token]);
+        $second = $this->request($this->app, 'POST', '/api/v1/auth/activation', $this->browser(), ['token' => $token]);
+
+        self::assertSame(200, $first->getStatusCode());
+        self::assertSame(['data' => ['firstName' => 'Nina', 'lastName' => 'Nouvelle', 'email' => 'nina@a.test']], $this->json($first));
+        self::assertSame(200, $second->getStatusCode());
+
+        // Une fois le compte activé, le lien ne sert plus.
+        $this->request($this->app, 'POST', '/api/v1/auth/activate', $this->browser(), ['token' => $token, 'password' => 'un-mot-de-passe-solide']);
+        $after = $this->request($this->app, 'POST', '/api/v1/auth/activation', $this->browser(), ['token' => $token]);
+        self::assertSame('invalid_activation_token', $this->errorCode($after));
+    }
+
+    public function testActivationLookupRejectsUnknownAndExpiredTokens(): void
+    {
+        $unknown = $this->request($this->app, 'POST', '/api/v1/auth/activation', $this->browser(), ['token' => 'nope']);
+        self::assertSame(422, $unknown->getStatusCode());
+        self::assertSame('invalid_activation_token', $this->errorCode($unknown));
+
+        $this->asAdmin('POST', '/api/v1/team', ['firstName' => 'N', 'lastName' => 'N', 'email' => 'n@a.test', 'role' => 'manager']);
+        $this->clock->advance('+7 days +1 minute');
+        $expired = $this->request($this->app, 'POST', '/api/v1/auth/activation', $this->browser(), ['token' => $this->notifier->sent['n@a.test']]);
+        self::assertSame('invalid_activation_token', $this->errorCode($expired));
     }
 
     public function testActivationTokenWorksOnlyOnce(): void

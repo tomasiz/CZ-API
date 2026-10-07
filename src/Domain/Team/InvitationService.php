@@ -11,6 +11,8 @@ use Casamiza\Domain\User\User;
 use Casamiza\Domain\User\UserRepositoryInterface;
 use Casamiza\Domain\User\UserStatus;
 use Casamiza\Infrastructure\Security\PasswordHasher;
+use Casamiza\Shared\Exception\ConflictException;
+use Casamiza\Shared\Exception\NotFoundException;
 use Casamiza\Shared\Exception\UnprocessableException;
 use Casamiza\Shared\TenantContext;
 use Casamiza\Shared\Transaction;
@@ -34,8 +36,13 @@ final readonly class InvitationService
         private ClockInterface $clock,
     ) {}
 
-    /** @throws \Casamiza\Shared\Exception\ConflictException `email_already_used` */
-    public function invite(string $firstName, string $lastName, string $email, Role $role): User
+    /**
+     * L'invitation renvoyée porte le jeton en clair : l'administrateur transmet lui-même le lien tant que l'envoi
+     * d'e-mails n'existe pas (et peut toujours le faire en plus).
+     *
+     * @throws \Casamiza\Shared\Exception\ConflictException `email_already_used`
+     */
+    public function invite(string $firstName, string $lastName, string $email, Role $role): Invitation
     {
         $user = new User(
             Uuid::uuid7()->toString(),
@@ -47,21 +54,71 @@ final readonly class InvitationService
             $role,
             status: UserStatus::Invited,
         );
-        $token = bin2hex(random_bytes(32));
 
-        $this->transaction->run(function () use ($user, $token): void {
+        $invitation = $this->transaction->run(function () use ($user): Invitation {
             $this->users->add($user);
-            $this->tokens->add(new UserToken(
-                Uuid::uuid7()->toString(),
-                $user->tenantId,
-                $user->id,
-                TokenPurpose::Activation,
-                self::hash($token),
-                $this->clock->now()->add(new DateInterval(self::VALIDITY)),
-            ));
-        });
 
-        $this->notifier->notify($user, $token);
+            return $this->issueToken($user);
+        });
+        $this->notifier->notify($user, $invitation->token);
+
+        return $invitation;
+    }
+
+    /**
+     * Génère un nouveau lien pour un membre qui n'a pas encore activé son compte ; les liens précédents cessent de
+     * fonctionner.
+     *
+     * @throws \Casamiza\Shared\Exception\NotFoundException `user_not_found`
+     * @throws \Casamiza\Shared\Exception\ConflictException `member_already_active`
+     */
+    public function resend(string $userId): Invitation
+    {
+        $invitation = $this->transaction->run(function () use ($userId): Invitation {
+            $user = $this->users->find($userId) ?? throw new NotFoundException('user_not_found');
+            if ($user->status !== UserStatus::Invited) {
+                throw new ConflictException('member_already_active');
+            }
+            $this->tokens->invalidateForUser($user->tenantId, $user->id, TokenPurpose::Activation, $this->clock->now());
+
+            return $this->issueToken($user);
+        });
+        $this->notifier->notify($invitation->user, $invitation->token);
+
+        return $invitation;
+    }
+
+    private function issueToken(User $user): Invitation
+    {
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = $this->clock->now()->add(new DateInterval(self::VALIDITY));
+
+        $this->tokens->add(new UserToken(
+            Uuid::uuid7()->toString(),
+            $user->tenantId,
+            $user->id,
+            TokenPurpose::Activation,
+            self::hash($token),
+            $expiresAt,
+        ));
+
+        return new Invitation($user, $token, $expiresAt);
+    }
+
+    /**
+     * Membre invité auquel appartient ce jeton, sans le consommer : la page d'activation peut ainsi accueillir
+     * la personne et signaler tout de suite un lien invalide ou expiré.
+     *
+     * @throws UnprocessableException `invalid_activation_token`
+     */
+    public function inspect(string $plainToken): User
+    {
+        $token = $this->usableToken($plainToken);
+        $user = $this->authUsers->findInTenant($token->tenantId, $token->userId);
+
+        if ($user === null || $user->status !== UserStatus::Invited) {
+            throw new UnprocessableException('invalid_activation_token');
+        }
 
         return $user;
     }
@@ -71,19 +128,27 @@ final readonly class InvitationService
     {
         PasswordPolicy::assert($password);
 
-        $now = $this->clock->now();
+        $token = $this->usableToken($plainToken);
+        if (!$this->tokens->markUsed($token->id, $this->clock->now())) {
+            throw new UnprocessableException('invalid_activation_token');
+        }
+
+        $this->authUsers->activate($token->tenantId, $token->userId, $this->hasher->hash($password));
+    }
+
+    private function usableToken(string $plainToken): UserToken
+    {
         $token = $this->tokens->findByHash(self::hash($plainToken));
         if (
             $token === null
             || $token->purpose !== TokenPurpose::Activation
             || $token->usedAt !== null
-            || $token->expiresAt <= $now
-            || !$this->tokens->markUsed($token->id, $now)
+            || $token->expiresAt <= $this->clock->now()
         ) {
             throw new UnprocessableException('invalid_activation_token');
         }
 
-        $this->authUsers->activate($token->tenantId, $token->userId, $this->hasher->hash($password));
+        return $token;
     }
 
     private static function hash(string $plain): string

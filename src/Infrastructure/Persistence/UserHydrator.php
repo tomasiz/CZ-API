@@ -27,7 +27,7 @@ final class UserHydrator
             passwordHash: isset($row['password_hash']) ? (string) $row['password_hash'] : null,
             role: Role::from((string) $row['role']),
             lastLoginAt: DbDate::fromDbOrNull($row['last_login_at'] ?? null),
-            status: UserStatus::from((string) ($row['status'] ?? 'active')),
+            status: UserStatus::from((string) $row['status']),
         );
     }
 }
