@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Casamiza\Domain\User\Role;
 use Casamiza\Http\Controller\AuthController;
 use Casamiza\Http\Controller\HealthController;
+use Casamiza\Http\Controller\IntegrationController;
 use Casamiza\Http\Controller\MeController;
 use Casamiza\Http\Controller\TeamController;
 use Casamiza\Http\Middleware\AuthMiddleware;
@@ -38,6 +39,14 @@ return static function (App $app): void {
                 $team->patch('/{id}', [TeamController::class, 'update']);
                 $team->post('/{id}/invitation', [TeamController::class, 'resendInvitation']);
                 $team->delete('/{id}', [TeamController::class, 'remove']);
+            })->add(new RoleMiddleware(Role::Admin));
+
+            // Services tiers (Guesty…) : administrateurs seulement, les secrets ne sont jamais renvoyés.
+            $api->group('/settings/integrations', function (RouteCollectorProxy $integrations): void {
+                $integrations->get('', [IntegrationController::class, 'index']);
+                $integrations->put('/{provider}', [IntegrationController::class, 'save']);
+                $integrations->post('/{provider}/check', [IntegrationController::class, 'check']);
+                $integrations->delete('/{provider}', [IntegrationController::class, 'remove']);
             })->add(new RoleMiddleware(Role::Admin));
         })->add(AuthMiddleware::class);
     });

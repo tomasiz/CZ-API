@@ -44,6 +44,7 @@ abstract class AppTestCase extends TestCase
                 cookieSameSite: 'none',
                 cookieSecure: true,
             ),
+            'encryptionKey' => str_repeat('k', 32),
             'logPath' => sys_get_temp_dir() . '/casamiza-test.log',
             'logLevel' => 'emergency',
             'projectRoot' => dirname(__DIR__),

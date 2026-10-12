@@ -7,6 +7,7 @@ namespace Casamiza\Tests\Auth;
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
+use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
 use Casamiza\Domain\Team\InvitationNotifierInterface;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
 use Casamiza\Domain\Tenant\Tenant;
@@ -22,12 +23,18 @@ use Casamiza\Shared\Transaction;
 use Casamiza\Tests\AppTestCase;
 use Casamiza\Tests\Support\FixedClock;
 use Casamiza\Tests\Support\ImmediateTransaction;
+use Casamiza\Tests\Support\InMemoryIntegrations;
 use Casamiza\Tests\Support\InMemoryInvitationNotifier;
 use Casamiza\Tests\Support\InMemoryLoginAttempts;
 use Casamiza\Tests\Support\InMemoryRefreshTokens;
 use Casamiza\Tests\Support\InMemoryTenants;
 use Casamiza\Tests\Support\InMemoryUsers;
 use Casamiza\Tests\Support\InMemoryUserTokens;
+use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use PDO;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -45,6 +52,22 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryLoginAttempts $attempts;
     protected InMemoryUserTokens $userTokens;
     protected InMemoryInvitationNotifier $notifier;
+    protected InMemoryIntegrations $integrations;
+
+    /** Réponses de l'API des services tiers (aucun appel réseau réel dans les tests). */
+    protected MockHandler $thirdParty;
+
+    /** @var \ArrayObject<int, array{request: \Psr\Http\Message\RequestInterface}> appels envoyés aux services tiers */
+    protected \ArrayObject $thirdPartyCalls;
+
+    /** @return list<string> chemins appelés sur les services tiers, dans l'ordre */
+    protected function thirdPartyPaths(): array
+    {
+        return array_values(array_map(
+            static fn(array $call): string => $call['request']->getUri()->getPath(),
+            $this->thirdPartyCalls->getArrayCopy(),
+        ));
+    }
 
     /** @var App<\Psr\Container\ContainerInterface|null> */
     protected App $app;
@@ -59,6 +82,12 @@ abstract class AuthTestCase extends AppTestCase
         $this->attempts = new InMemoryLoginAttempts();
         $this->userTokens = new InMemoryUserTokens();
         $this->notifier = new InMemoryInvitationNotifier();
+        $this->integrations = new InMemoryIntegrations($context);
+        $this->thirdParty = new MockHandler();
+        $calls = new \ArrayObject();
+        $this->thirdPartyCalls = $calls;
+        $stack = HandlerStack::create($this->thirdParty);
+        $stack->push(Middleware::history($calls));
 
         $this->tenants->add(new Tenant('tenant-a', 'Conciergerie A'));
         $this->tenants->add(new Tenant('tenant-b', 'Conciergerie B'));
@@ -82,6 +111,8 @@ abstract class AuthTestCase extends AppTestCase
             LoginAttemptRepositoryInterface::class => $this->attempts,
             UserTokenRepositoryInterface::class => $this->userTokens,
             InvitationNotifierInterface::class => $this->notifier,
+            IntegrationRepositoryInterface::class => $this->integrations,
+            ClientInterface::class => new Client(['handler' => $stack]),
             Transaction::class => new ImmediateTransaction(),
         ], compileContainer: false);
     }

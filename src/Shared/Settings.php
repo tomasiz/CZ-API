@@ -18,6 +18,7 @@ final readonly class Settings
         public string $dbUser,
         public string $dbPass,
         public AuthSettings $auth,
+        public string $encryptionKey,
         public string $logPath,
         public string $logLevel,
         public string $projectRoot,
@@ -55,6 +56,12 @@ final readonly class Settings
             throw new InvalidArgumentException('SESSION_MAX_DAYS doit être 0 (aucun plafond) ou >= REFRESH_TTL_DAYS.');
         }
 
+        // 32 octets encodés en base64 : `php -r "echo base64_encode(random_bytes(32));"`
+        $encryptionKey = base64_decode($get('APP_ENCRYPTION_KEY'), true);
+        if ($encryptionKey === false || strlen($encryptionKey) !== 32) {
+            throw new InvalidArgumentException('APP_ENCRYPTION_KEY doit être une clé de 32 octets encodée en base64.');
+        }
+
         return new self(
             appEnv: $appEnv,
             corsOrigin: rtrim($get('CORS_ORIGIN'), '/'),
@@ -74,6 +81,7 @@ final readonly class Settings
                 cookieSameSite: $sameSite,
                 cookieSecure: $secure,
             ),
+            encryptionKey: $encryptionKey,
             logPath: $get('LOG_PATH', $projectRoot . '/storage/logs/app.log'),
             logLevel: $get('LOG_LEVEL', $appEnv === 'prod' ? 'info' : 'debug'),
             projectRoot: $projectRoot,

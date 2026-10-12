@@ -5,18 +5,23 @@ declare(strict_types=1);
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
+use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
+use Casamiza\Domain\Integration\ProviderRegistry;
 use Casamiza\Domain\Team\InvitationNotifierInterface;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
 use Casamiza\Domain\Tenant\TenantRepositoryInterface;
 use Casamiza\Domain\User\UserRepositoryInterface;
+use Casamiza\Infrastructure\Integration\GuestyProvider;
 use Casamiza\Infrastructure\Mail\LogInvitationNotifier;
 use Casamiza\Infrastructure\Persistence\PdoAuthUserRepository;
+use Casamiza\Infrastructure\Persistence\PdoIntegrationRepository;
 use Casamiza\Infrastructure\Persistence\PdoLoginAttemptRepository;
 use Casamiza\Infrastructure\Persistence\PdoRefreshTokenRepository;
 use Casamiza\Infrastructure\Persistence\PdoTenantRepository;
 use Casamiza\Infrastructure\Persistence\PdoTransaction;
 use Casamiza\Infrastructure\Persistence\PdoUserRepository;
 use Casamiza\Infrastructure\Persistence\PdoUserTokenRepository;
+use Casamiza\Infrastructure\Security\Encryptor;
 use Casamiza\Shared\RequestContext;
 use Casamiza\Shared\Settings;
 use Casamiza\Shared\SystemClock;
@@ -25,6 +30,8 @@ use Casamiza\Shared\Transaction;
 
 use function DI\get;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Logger;
@@ -47,6 +54,14 @@ return [
     UserTokenRepositoryInterface::class => get(PdoUserTokenRepository::class),
     InvitationNotifierInterface::class => get(LogInvitationNotifier::class),
     Transaction::class => get(PdoTransaction::class),
+
+    IntegrationRepositoryInterface::class => get(PdoIntegrationRepository::class),
+    ClientInterface::class => static fn(): Client => new Client(),
+    Encryptor::class => static fn(ContainerInterface $c): Encryptor => new Encryptor($c->get(Settings::class)->encryptionKey),
+    // Services tiers pris en charge : ajouter ici chaque nouveau fournisseur (Mailsend, Pennylane…).
+    ProviderRegistry::class => static fn(ContainerInterface $c): ProviderRegistry => new ProviderRegistry([
+        $c->get(GuestyProvider::class),
+    ]),
 
     LoggerInterface::class => static function (ContainerInterface $c): Logger {
         $settings = $c->get(Settings::class);
