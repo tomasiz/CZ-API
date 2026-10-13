@@ -108,13 +108,36 @@ final readonly class IntegrationService
      */
     public function check(string $name): IntegrationEntry
     {
+        return $this->verify($name, renew: false)[0];
+    }
+
+    /**
+     * Jeton d'accès valable du service pour appeler son API (jeton en cache, ou nouveau s'il est périmé).
+     * `$renew` écarte le jeton en cache : à utiliser quand le tiers vient de le refuser (401).
+     *
+     * @throws NotFoundException `integration_not_configured`
+     * @throws \Casamiza\Shared\Exception\ApiException l'accès au tiers a échoué (voir CheckFailure)
+     */
+    public function accessToken(string $name, bool $renew = false): string
+    {
+        $result = $this->verify($name, $renew)[1];
+        if ($result->failure !== null) {
+            throw $result->failure->toException();
+        }
+
+        return $result->token->value ?? throw CheckFailure::Unreachable->toException();
+    }
+
+    /** @return array{IntegrationEntry, CheckResult} */
+    private function verify(string $name, bool $renew): array
+    {
         $provider = $this->providers->get($name);
 
-        return $this->transaction->run(function () use ($provider): IntegrationEntry {
+        return $this->transaction->run(function () use ($provider, $renew): array {
             $existing = $this->integrations->find($provider->provider(), true) ?? throw new NotFoundException('integration_not_configured');
             $secrets = $this->secretsOf($existing);
 
-            $result = $provider->check($secrets + $existing->settings, $this->cachedTokenOf($existing));
+            $result = $provider->check($secrets + $existing->settings, $renew ? null : $this->cachedTokenOf($existing));
 
             $integration = $this->build(
                 id: $existing->id,
@@ -127,7 +150,7 @@ final readonly class IntegrationService
             );
             $this->integrations->save($integration);
 
-            return new IntegrationEntry($provider, $integration);
+            return [new IntegrationEntry($provider, $integration), $result];
         });
     }
 

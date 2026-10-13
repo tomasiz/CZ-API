@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Casamiza\Console\SyncGuestyCommand;
 use Casamiza\Console\TenantCreateCommand;
 use Casamiza\Kernel;
 use Casamiza\Shared\Settings;
@@ -18,4 +19,5 @@ $container = Kernel::createContainer(Settings::fromEnv($_ENV + $_SERVER, $root))
 
 $application = new Application('Casamiza', '1.0');
 $application->addCommand($container->get(TenantCreateCommand::class));
+$application->addCommand($container->get(SyncGuestyCommand::class));
 $application->run();

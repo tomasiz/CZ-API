@@ -8,6 +8,8 @@ use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
+use Casamiza\Domain\Owner\OwnerRepositoryInterface;
+use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Domain\Team\InvitationNotifierInterface;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
 use Casamiza\Domain\Tenant\Tenant;
@@ -26,6 +28,8 @@ use Casamiza\Tests\Support\ImmediateTransaction;
 use Casamiza\Tests\Support\InMemoryIntegrations;
 use Casamiza\Tests\Support\InMemoryInvitationNotifier;
 use Casamiza\Tests\Support\InMemoryLoginAttempts;
+use Casamiza\Tests\Support\InMemoryOwners;
+use Casamiza\Tests\Support\InMemoryProperties;
 use Casamiza\Tests\Support\InMemoryRefreshTokens;
 use Casamiza\Tests\Support\InMemoryTenants;
 use Casamiza\Tests\Support\InMemoryUsers;
@@ -53,6 +57,9 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryUserTokens $userTokens;
     protected InMemoryInvitationNotifier $notifier;
     protected InMemoryIntegrations $integrations;
+    protected InMemoryOwners $owners;
+    protected InMemoryProperties $properties;
+    protected TenantContext $context;
 
     /** Réponses de l'API des services tiers (aucun appel réseau réel dans les tests). */
     protected MockHandler $thirdParty;
@@ -76,6 +83,7 @@ abstract class AuthTestCase extends AppTestCase
     {
         $this->clock = new FixedClock();
         $context = new TenantContext();
+        $this->context = $context;
         $this->tenants = new InMemoryTenants();
         $this->users = new InMemoryUsers($context, $this->tenants);
         $this->refreshTokens = new InMemoryRefreshTokens();
@@ -83,6 +91,8 @@ abstract class AuthTestCase extends AppTestCase
         $this->userTokens = new InMemoryUserTokens();
         $this->notifier = new InMemoryInvitationNotifier();
         $this->integrations = new InMemoryIntegrations($context);
+        $this->owners = new InMemoryOwners($context);
+        $this->properties = new InMemoryProperties($context);
         $this->thirdParty = new MockHandler();
         $calls = new \ArrayObject();
         $this->thirdPartyCalls = $calls;
@@ -112,6 +122,8 @@ abstract class AuthTestCase extends AppTestCase
             UserTokenRepositoryInterface::class => $this->userTokens,
             InvitationNotifierInterface::class => $this->notifier,
             IntegrationRepositoryInterface::class => $this->integrations,
+            OwnerRepositoryInterface::class => $this->owners,
+            PropertyRepositoryInterface::class => $this->properties,
             ClientInterface::class => new Client(['handler' => $stack]),
             Transaction::class => new ImmediateTransaction(),
         ], compileContainer: false);

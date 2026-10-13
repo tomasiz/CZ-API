@@ -25,7 +25,7 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class GuestyProvider implements IntegrationProviderInterface
 {
-    private const BASE_URI = 'https://open-api.guesty.com';
+    public const BASE_URI = 'https://open-api.guesty.com';
 
     public function __construct(
         private ClientInterface $http,

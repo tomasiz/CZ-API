@@ -36,6 +36,7 @@
             "@test"
         ],
         "console": "bin/php bin/console",
+        "sync:guesty": "bin/php bin/console sync:guesty",
         "seed": "bin/php vendor/bin/phinx seed:run"
     },
     "require-dev": {

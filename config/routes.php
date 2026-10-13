@@ -7,6 +7,9 @@ use Casamiza\Http\Controller\AuthController;
 use Casamiza\Http\Controller\HealthController;
 use Casamiza\Http\Controller\IntegrationController;
 use Casamiza\Http\Controller\MeController;
+use Casamiza\Http\Controller\OwnerController;
+use Casamiza\Http\Controller\PropertyController;
+use Casamiza\Http\Controller\SyncController;
 use Casamiza\Http\Controller\TeamController;
 use Casamiza\Http\Middleware\AuthMiddleware;
 use Casamiza\Http\Middleware\CsrfOriginMiddleware;
@@ -40,6 +43,11 @@ return static function (App $app): void {
                 $team->post('/{id}/invitation', [TeamController::class, 'resendInvitation']);
                 $team->delete('/{id}', [TeamController::class, 'remove']);
             })->add(new RoleMiddleware(Role::Admin));
+
+            // Propriétaires et logements (importés de Guesty) : tous les membres ; la synchronisation aussi.
+            $api->get('/owners', [OwnerController::class, 'index']);
+            $api->get('/properties', [PropertyController::class, 'index']);
+            $api->post('/sync/guesty', [SyncController::class, 'guesty']);
 
             // Services tiers (Guesty…) : administrateurs seulement, les secrets ne sont jamais renvoyés.
             $api->group('/settings/integrations', function (RouteCollectorProxy $integrations): void {
