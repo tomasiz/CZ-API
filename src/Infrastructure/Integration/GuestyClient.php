@@ -7,6 +7,8 @@ namespace Casamiza\Infrastructure\Integration;
 use Casamiza\Domain\Guesty\GuestyDirectoryInterface;
 use Casamiza\Domain\Guesty\GuestyListing;
 use Casamiza\Domain\Guesty\GuestyOwner;
+use Casamiza\Domain\Guesty\GuestyReservation;
+use Casamiza\Domain\Guesty\GuestyReservationsInterface;
 use Casamiza\Domain\Integration\CheckFailure;
 use Casamiza\Domain\Integration\IntegrationService;
 use Casamiza\Domain\Integration\Provider;
@@ -25,9 +27,12 @@ use Psr\Http\Message\ResponseInterface;
  *
  * @see https://open-api-docs.guesty.com/reference/ownersopenapicontroller_getall
  */
-final readonly class GuestyClient implements GuestyDirectoryInterface
+final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyReservationsInterface
 {
     private const PAGE_SIZE = 100;
+
+    /** Pause entre deux pages d'une même ressource (bien en deçà des 15 requêtes par seconde de Guesty). */
+    private const PAGE_PAUSE_MICROSECONDS = 100_000;
 
     /** Garde-fou contre une pagination qui ne se termine jamais (20 000 éléments). */
     private const MAX_PAGES = 200;
@@ -54,12 +59,18 @@ final readonly class GuestyClient implements GuestyDirectoryInterface
                 continue;
             }
             $email = self::string($row['email'] ?? null);
-            $name = self::string($row['fullName'] ?? null);
+            $firstName = self::withoutOwnerPrefix(self::string($row['firstName'] ?? null));
+            $lastName = self::withoutOwnerPrefix(self::string($row['lastName'] ?? null), false);
+            $name = self::withoutOwnerPrefix(self::string($row['fullName'] ?? null));
             if ($name === '') {
-                $name = trim(self::string($row['firstName'] ?? null) . ' ' . self::string($row['lastName'] ?? null));
+                $name = self::withoutOwnerPrefix($firstName . ' ' . $lastName, false);
             }
-            // Convention de nommage du compte Guesty : « P - Prénom Nom » ; le préfixe n'a pas sa place chez nous.
-            $name = trim((string) preg_replace('/^P\s*-\s*/u', '', $name));
+            if ($firstName === '' && $lastName === '' && $name !== '') {
+                // Guesty ne sépare pas le nom : le dernier mot est le nom de famille.
+                $cut = mb_strrpos($name, ' ');
+                $firstName = $cut === false ? '' : trim(mb_substr($name, 0, $cut));
+                $lastName = $cut === false ? $name : trim(mb_substr($name, $cut + 1));
+            }
             $business = self::map($row['businessInformation'] ?? null);
             $commission = $business['ownerCommission'] ?? null;
             $businessType = self::string(self::map($business['businessType'] ?? null)['type'] ?? null);
@@ -67,6 +78,8 @@ final readonly class GuestyClient implements GuestyDirectoryInterface
             $owners[] = new GuestyOwner(
                 guestyId: $id,
                 name: $name !== '' ? $name : $email,
+                firstName: $firstName,
+                lastName: $lastName,
                 email: $email,
                 phone: self::string($row['phone'] ?? null),
                 address: self::firstNonEmpty(
@@ -118,6 +131,97 @@ final readonly class GuestyClient implements GuestyDirectoryInterface
         }
 
         return $listings;
+    }
+
+    public function reservations(\DateTimeImmutable $from): array
+    {
+        $filters = json_encode([
+            ['field' => 'status', 'operator' => '$eq', 'value' => 'confirmed'],
+            ['field' => 'checkOut', 'operator' => '$gte', 'value' => $from->format('Y-m-d')],
+        ], JSON_THROW_ON_ERROR);
+        // Sous-champs de `money` listés un à un : demander `money` en entier renvoie des centaines de lignes de détail.
+        $rows = $this->fetchAll($this->session(), '/v1/reservations', [
+            'filters' => $filters,
+            'sort' => 'checkOut',
+            'fields' => '_id listingId source status checkIn checkOut guest.fullName integration nightsCount guestsCount'
+                . ' money.hostPayout money.hostServiceFee money.totalPaymentFees money.totalTaxes money.fareCleaning money.totalFees'
+                . ' money.transientOccupancyTax money.fareAccommodationAdjusted money.payments atTimeOfConfirmation.taxes',
+        ]);
+
+        $reservations = [];
+        foreach ($rows as $row) {
+            $id = self::string($row['_id'] ?? null);
+            $checkIn = self::date($row['checkIn'] ?? null);
+            $checkOut = self::date($row['checkOut'] ?? null);
+            if ($id === '' || $checkIn === null || $checkOut === null) {
+                continue;
+            }
+            $listing = self::string($row['listingId'] ?? null);
+            $integration = self::map($row['integration'] ?? null);
+            $money = self::map($row['money'] ?? null);
+
+            $reservations[] = new GuestyReservation(
+                guestyId: $id,
+                listingGuestyId: $listing !== '' ? $listing : self::string(self::map($row['listing'] ?? null)['_id'] ?? null),
+                source: self::string($row['source'] ?? null),
+                integrationKeys: array_map(strval(...), array_keys($integration)),
+                platformRef: self::platformRef($integration),
+                guest: self::string(self::map($row['guest'] ?? null)['fullName'] ?? null),
+                checkIn: $checkIn,
+                checkOut: $checkOut,
+                nights: self::int($row['nightsCount'] ?? null),
+                guests: self::int($row['guestsCount'] ?? null),
+                hostPayout: self::amount($money['hostPayout'] ?? null),
+                hostServiceFee: self::amount($money['hostServiceFee'] ?? null),
+                totalPaymentFees: self::amount($money['totalPaymentFees'] ?? null),
+                totalTaxes: self::amount($money['totalTaxes'] ?? null),
+                fareCleaning: self::amount($money['fareCleaning'] ?? null),
+                totalFees: self::amount($money['totalFees'] ?? null),
+                transientOccupancyTax: self::amount($money['transientOccupancyTax'] ?? null),
+                fareAccommodationAdjusted: self::amount($money['fareAccommodationAdjusted'] ?? null),
+                payments: self::map($money['payments'] ?? null),
+                confirmationTaxes: self::map(self::map($row['atTimeOfConfirmation'] ?? null)['taxes'] ?? null),
+            );
+        }
+
+        return $reservations;
+    }
+
+    /**
+     * Référence de la réservation côté plateforme : `integration.<platform>.reservationId` (Booking.com) ou `.id` (Airbnb).
+     * La clé est `integration.platform` (`bookingCom`, `airbnb2`), pas `source` (« Booking.com »). Vide pour Abritel et les
+     * réservations manuelles.
+     *
+     * @param array<array-key, mixed> $integration
+     */
+    private static function platformRef(array $integration): string
+    {
+        $details = self::map($integration[self::string($integration['platform'] ?? null)] ?? null);
+        $ref = $details['reservationId'] ?? $details['id'] ?? null;
+
+        return is_string($ref) || is_int($ref) ? trim((string) $ref) : '';
+    }
+
+    private static function date(mixed $value): ?\DateTimeImmutable
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+        try {
+            return (new \DateTimeImmutable($value))->setTimezone(new \DateTimeZone('UTC'));
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    private static function int(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private static function amount(mixed $value): float
+    {
+        return is_numeric($value) ? round((float) $value, 2) : 0.0;
     }
 
     /**
@@ -190,6 +294,10 @@ final readonly class GuestyClient implements GuestyDirectoryInterface
         $skip = 0;
 
         for ($page = 0; $page < self::MAX_PAGES; $page++) {
+            if ($page > 0) {
+                // Open API : 15 requêtes par seconde, 120 par minute, 5 000 par heure.
+                usleep(self::PAGE_PAUSE_MICROSECONDS);
+            }
             $body = $this->getJson($session, $path, $query + ['limit' => (string) self::PAGE_SIZE, 'skip' => (string) $skip]);
 
             if (array_is_list($body)) {
@@ -292,6 +400,17 @@ final readonly class GuestyClient implements GuestyDirectoryInterface
     private static function string(mixed $value): string
     {
         return is_string($value) ? trim($value) : '';
+    }
+
+    /**
+     * Nettoie un nom Guesty : espaces superflus retirés (Guesty en laisse en fin de prénom) et, pour un prénom ou un nom
+     * complet, préfixe « P - » (convention du compte : « P - Prénom Nom ») qui n'a sa place ni en base ni sur les PDF.
+     */
+    private static function withoutOwnerPrefix(string $name, bool $prefix = true): string
+    {
+        $name = trim((string) preg_replace('/\s+/u', ' ', $name));
+
+        return $prefix ? trim((string) preg_replace('/^P\s*-\s*/u', '', $name)) : $name;
     }
 
     private static function firstNonEmpty(string ...$values): string

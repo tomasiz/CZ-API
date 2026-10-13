@@ -1,0 +1,1282 @@
+[
+    {
+        "name": "airbnb|cleaning_fee=empty_or_zero_from_guesty| #656/5bf51e",
+        "source": "airbnb2",
+        "commission": 22,
+        "propertyCleaningFee": 108,
+        "stripeFee": null,
+        "nights": 3,
+        "guests": 5,
+        "raw": {
+            "hostPayout": 458.44,
+            "hostServiceFee": 104.76,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 30.98,
+            "fareAccommodationAdjusted": 563.2,
+            "payments": [
+                {
+                    "amount": 458.44,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 594.1800000000001,
+            "commission": 104.76,
+            "fee": 0,
+            "tax": 30.98,
+            "cleaning": 0,
+            "net": 458.44,
+            "concierge": 100.86,
+            "revenue": 357.58
+        },
+        "flags": {
+            "cleaning_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "airbnb|cleaning_fee=empty_or_zero_from_guesty| #591/a46812",
+        "source": "airbnb2",
+        "commission": 22,
+        "propertyCleaningFee": 96,
+        "stripeFee": null,
+        "nights": 3,
+        "guests": 4,
+        "raw": {
+            "hostPayout": 621.78,
+            "hostServiceFee": 23.22,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 17.73,
+            "fareAccommodationAdjusted": 645,
+            "payments": [
+                {
+                    "amount": 621.78,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 662.73,
+            "commission": 23.22,
+            "fee": 0,
+            "tax": 17.73,
+            "cleaning": 0,
+            "net": 621.78,
+            "concierge": 136.79,
+            "revenue": 484.99
+        },
+        "flags": {
+            "cleaning_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "airbnb|| #440/aa30b1",
+        "source": "airbnb2",
+        "commission": 5,
+        "propertyCleaningFee": 42,
+        "stripeFee": null,
+        "nights": 1,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 74.89,
+            "hostServiceFee": 17.11,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 42,
+            "totalFees": 42,
+            "transientOccupancyTax": 2.75,
+            "fareAccommodationAdjusted": 50,
+            "payments": [
+                {
+                    "amount": 74.89,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 94.75,
+            "commission": 17.11,
+            "fee": 0,
+            "tax": 2.75,
+            "cleaning": 42,
+            "net": 74.89,
+            "concierge": 1.64,
+            "revenue": 31.25
+        },
+        "flags": []
+    },
+    {
+        "name": "airbnb|| #428/1f2e31",
+        "source": "airbnb2",
+        "commission": 22,
+        "propertyCleaningFee": 66,
+        "stripeFee": null,
+        "nights": 4,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 393.98,
+            "hostServiceFee": 90.02,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 83,
+            "totalFees": 83,
+            "transientOccupancyTax": 22.05,
+            "fareAccommodationAdjusted": 401,
+            "payments": [
+                {
+                    "amount": 393.98,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 506.05,
+            "commission": 90.02,
+            "fee": 0,
+            "tax": 22.05,
+            "cleaning": 83,
+            "net": 393.98,
+            "concierge": 68.42,
+            "revenue": 242.56
+        },
+        "flags": []
+    },
+    {
+        "name": "booking|cleaning_fee=empty_or_zero_from_guesty| #662/a0d116",
+        "source": "Booking.com",
+        "commission": 22,
+        "propertyCleaningFee": 180,
+        "stripeFee": null,
+        "nights": 2,
+        "guests": 4,
+        "raw": {
+            "hostPayout": 424.35,
+            "hostServiceFee": 72.14,
+            "totalPaymentFees": 5.94,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 424.35,
+            "payments": [
+                {
+                    "amount": 438.35,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 438.35,
+            "commission": 72.14,
+            "fee": 5.94,
+            "tax": 14,
+            "cleaning": 0,
+            "net": 346.27,
+            "concierge": 76.18,
+            "revenue": 270.09
+        },
+        "flags": {
+            "cleaning_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "booking|cleaning_fee=empty_or_zero_from_guesty| #665/0d3145",
+        "source": "Booking.com",
+        "commission": 22,
+        "propertyCleaningFee": 180,
+        "stripeFee": null,
+        "nights": 3,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 466.17,
+            "hostServiceFee": 79.25,
+            "totalPaymentFees": 6.53,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 466.17,
+            "payments": [
+                {
+                    "amount": 481.55,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 481.55,
+            "commission": 79.25,
+            "fee": 6.53,
+            "tax": 15.379999999999995,
+            "cleaning": 0,
+            "net": 380.39,
+            "concierge": 83.69,
+            "revenue": 296.7
+        },
+        "flags": {
+            "cleaning_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "booking|payment_fee=empty_or_zero_from_guesty,tourist_tax=possible_vat| #640/5a56d7",
+        "source": "Booking.com",
+        "commission": 20,
+        "propertyCleaningFee": 120,
+        "stripeFee": null,
+        "nights": 6,
+        "guests": 4,
+        "raw": {
+            "hostPayout": 1500,
+            "hostServiceFee": 276,
+            "totalPaymentFees": 0,
+            "totalTaxes": 48.48,
+            "fareCleaning": 152,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 1727.52,
+            "payments": [],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 1500,
+            "commission": 276,
+            "fee": 0,
+            "tax": 48.48,
+            "cleaning": 152,
+            "net": 1175.52,
+            "concierge": 204.7,
+            "revenue": 818.82
+        },
+        "flags": {
+            "payment_fee": "empty_or_zero_from_guesty",
+            "tourist_tax": "possible_vat"
+        }
+    },
+    {
+        "name": "booking|tourist_tax=possible_vat| #522/579f0b",
+        "source": "Booking.com",
+        "commission": 22,
+        "propertyCleaningFee": 60,
+        "stripeFee": null,
+        "nights": 1,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 153.5,
+            "hostServiceFee": 26.09,
+            "totalPaymentFees": 2.15,
+            "totalTaxes": 1.26,
+            "fareCleaning": 92,
+            "totalFees": 92,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 60.24,
+            "payments": [
+                {
+                    "amount": 156.81,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 153.5,
+            "commission": 26.09,
+            "fee": 2.15,
+            "tax": 1.26,
+            "cleaning": 92,
+            "net": 124,
+            "concierge": 7.04,
+            "revenue": 24.96
+        },
+        "flags": {
+            "tourist_tax": "possible_vat"
+        }
+    },
+    {
+        "name": "booking|tourist_tax=possible_vat| #513/75cbfa",
+        "source": "Booking.com",
+        "commission": 22,
+        "propertyCleaningFee": 50,
+        "stripeFee": null,
+        "nights": 4,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 541.81,
+            "hostServiceFee": 87.75,
+            "totalPaymentFees": 7.23,
+            "totalTaxes": 25.64,
+            "fareCleaning": 50,
+            "totalFees": 50,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 466.17,
+            "payments": [
+                {
+                    "amount": 541.81,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 541.81,
+            "commission": 87.75,
+            "fee": 7.23,
+            "tax": 25.64,
+            "cleaning": 50,
+            "net": 421.19,
+            "concierge": 81.66,
+            "revenue": 289.53
+        },
+        "flags": {
+            "tourist_tax": "possible_vat"
+        }
+    },
+    {
+        "name": "booking|tourist_tax=tax_computed_percent| #459/3d801a",
+        "source": "Booking.com",
+        "commission": 20,
+        "propertyCleaningFee": 60,
+        "stripeFee": null,
+        "nights": 6,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 471.67,
+            "hostServiceFee": 80.18,
+            "totalPaymentFees": 6.79,
+            "totalTaxes": 0,
+            "fareCleaning": 67,
+            "totalFees": 67,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 404.67,
+            "payments": [
+                {
+                    "amount": 552.37,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "6880b42794562d59127c9e05",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 3.3,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 485.02000000000004,
+            "commission": 80.18,
+            "fee": 6.79,
+            "tax": 13.35,
+            "cleaning": 67,
+            "net": 384.7,
+            "concierge": 63.54,
+            "revenue": 254.16
+        },
+        "flags": {
+            "tourist_tax": "tax_computed_percent"
+        }
+    },
+    {
+        "name": "booking|| #564/6472c6",
+        "source": "Booking.com",
+        "commission": 20,
+        "propertyCleaningFee": 0,
+        "stripeFee": null,
+        "nights": 1,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 110.1,
+            "hostServiceFee": 18.72,
+            "totalPaymentFees": 1.54,
+            "totalTaxes": 0,
+            "fareCleaning": 47,
+            "totalFees": 47,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 63.1,
+            "payments": [
+                {
+                    "amount": 113.57,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 113.57,
+            "commission": 18.72,
+            "fee": 1.54,
+            "tax": 3.469999999999999,
+            "cleaning": 47,
+            "net": 89.84,
+            "concierge": 8.57,
+            "revenue": 34.27
+        },
+        "flags": []
+    },
+    {
+        "name": "booking|| #405/63df61",
+        "source": "Booking.com",
+        "commission": 20,
+        "propertyCleaningFee": 72,
+        "stripeFee": null,
+        "nights": 4,
+        "guests": 3,
+        "raw": {
+            "hostPayout": 415.49,
+            "hostServiceFee": 70.63,
+            "totalPaymentFees": 6.07,
+            "totalTaxes": 0,
+            "fareCleaning": 92,
+            "totalFees": 92,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 323.49,
+            "payments": [
+                {
+                    "amount": 433.28,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 433.28,
+            "commission": 70.63,
+            "fee": 6.07,
+            "tax": 17.789999999999964,
+            "cleaning": 92,
+            "net": 338.79,
+            "concierge": 49.36,
+            "revenue": 197.43
+        },
+        "flags": []
+    },
+    {
+        "name": "direct|tourist_tax=empty_or_zero_from_guesty|stripe #514/7d7546",
+        "source": "Direct",
+        "commission": 20,
+        "propertyCleaningFee": 0,
+        "stripeFee": 2.25,
+        "nights": 1,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 80,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 80,
+            "payments": [
+                {
+                    "amount": 80,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 80,
+            "commission": 0,
+            "fee": 2.25,
+            "tax": 0,
+            "cleaning": 0,
+            "net": 77.75,
+            "concierge": 15.55,
+            "revenue": 62.2
+        },
+        "flags": {
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,cleaning_fee=empty_or_zero_from_guesty,payment_fee=empty_or_zero_from_guesty,tourist_tax=empty_or_zero_from_guesty| #481/f4d7d6",
+        "source": "manual",
+        "commission": 20,
+        "propertyCleaningFee": 72,
+        "stripeFee": null,
+        "nights": 19,
+        "guests": 1,
+        "raw": {
+            "hostPayout": 1225,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 1225,
+            "payments": [
+                {
+                    "amount": 1225,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 1225,
+            "commission": 0,
+            "fee": 0,
+            "tax": 0,
+            "cleaning": 0,
+            "net": 1225,
+            "concierge": 245,
+            "revenue": 980
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "cleaning_fee": "empty_or_zero_from_guesty",
+            "payment_fee": "empty_or_zero_from_guesty",
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,cleaning_fee=empty_or_zero_from_guesty,payment_fee=empty_or_zero_from_guesty,tourist_tax=empty_or_zero_from_guesty| #708/b18bde",
+        "source": "manual",
+        "commission": 0,
+        "propertyCleaningFee": 60,
+        "stripeFee": null,
+        "nights": 21,
+        "guests": 1,
+        "raw": {
+            "hostPayout": 2250,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 2250,
+            "payments": [
+                {
+                    "amount": 675,
+                    "status": "PENDING"
+                },
+                {
+                    "amount": 2250,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 2250,
+            "commission": 0,
+            "fee": 0,
+            "tax": 0,
+            "cleaning": 0,
+            "net": 2250,
+            "concierge": 0,
+            "revenue": 2250
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "cleaning_fee": "empty_or_zero_from_guesty",
+            "payment_fee": "empty_or_zero_from_guesty",
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,cleaning_fee=empty_or_zero_from_guesty,tourist_tax=empty_or_zero_from_guesty|stripe #431/d9e63a",
+        "source": "manual",
+        "commission": 20,
+        "propertyCleaningFee": 108,
+        "stripeFee": 3.38,
+        "nights": 1,
+        "guests": 4,
+        "raw": {
+            "hostPayout": 125,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 125,
+            "payments": [
+                {
+                    "amount": 125,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 125,
+            "commission": 0,
+            "fee": 3.38,
+            "tax": 0,
+            "cleaning": 0,
+            "net": 121.62,
+            "concierge": 24.32,
+            "revenue": 97.3
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "cleaning_fee": "empty_or_zero_from_guesty",
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,cleaning_fee=empty_or_zero_from_guesty,tourist_tax=empty_or_zero_from_guesty|stripe #550/255700",
+        "source": "manual",
+        "commission": 22,
+        "propertyCleaningFee": 42,
+        "stripeFee": 6.5,
+        "nights": 5,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 250,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 250,
+            "payments": [
+                {
+                    "amount": 250,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 250,
+            "commission": 0,
+            "fee": 6.5,
+            "tax": 0,
+            "cleaning": 0,
+            "net": 243.5,
+            "concierge": 53.57,
+            "revenue": 189.93
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "cleaning_fee": "empty_or_zero_from_guesty",
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,cleaning_fee=empty_or_zero_from_guesty|stripe #666/7493b8",
+        "source": "manual",
+        "commission": 20,
+        "propertyCleaningFee": 72,
+        "stripeFee": 2.75,
+        "nights": 1,
+        "guests": 1,
+        "raw": {
+            "hostPayout": 100,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 5.21,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 94.79,
+            "payments": [
+                {
+                    "amount": 100,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 100,
+            "commission": 0,
+            "fee": 2.75,
+            "tax": 5.21,
+            "cleaning": 0,
+            "net": 97.25,
+            "concierge": 18.41,
+            "revenue": 73.63
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "cleaning_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,cleaning_fee=empty_or_zero_from_guesty|stripe #556/11492f",
+        "source": "manual",
+        "commission": 20,
+        "propertyCleaningFee": 72,
+        "stripeFee": 14.15,
+        "nights": 3,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 327.05,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 17.05,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 310,
+            "payments": [
+                {
+                    "amount": 327.05,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 327.05,
+            "commission": 0,
+            "fee": 14.15,
+            "tax": 17.05,
+            "cleaning": 0,
+            "net": 312.9,
+            "concierge": 59.17,
+            "revenue": 236.68
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "cleaning_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,payment_fee=empty_or_zero_from_guesty| #638/db085d",
+        "source": "manual",
+        "commission": 20,
+        "propertyCleaningFee": 150,
+        "stripeFee": null,
+        "nights": 8,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 3646,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 179.02,
+            "fareCleaning": 212,
+            "totalFees": 212,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 3254.98,
+            "payments": [
+                {
+                    "amount": 3646,
+                    "status": "PENDING"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 3646,
+            "commission": 0,
+            "fee": 0,
+            "tax": 179.02,
+            "cleaning": 212,
+            "net": 3646,
+            "concierge": 651,
+            "revenue": 2603.98
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "payment_fee": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,tourist_tax=empty_or_zero_from_guesty|stripe #415/a0d8e2",
+        "source": "manual",
+        "commission": 5,
+        "propertyCleaningFee": 42,
+        "stripeFee": 4.9,
+        "nights": 5,
+        "guests": 1,
+        "raw": {
+            "hostPayout": 186,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 42,
+            "totalFees": 42,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 144,
+            "payments": [
+                {
+                    "amount": 186,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 186,
+            "commission": 0,
+            "fee": 4.9,
+            "tax": 0,
+            "cleaning": 42,
+            "net": 181.1,
+            "concierge": 6.96,
+            "revenue": 132.14
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty,tourist_tax=empty_or_zero_from_guesty|stripe #710/913020",
+        "source": "manual",
+        "commission": 22,
+        "propertyCleaningFee": 42,
+        "stripeFee": 12,
+        "nights": 7,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 460,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 0,
+            "fareCleaning": 59,
+            "totalFees": 59,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 401,
+            "payments": [
+                {
+                    "amount": 138,
+                    "status": "SUCCEEDED"
+                },
+                {
+                    "amount": 322,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 460,
+            "commission": 0,
+            "fee": 12,
+            "tax": 0,
+            "cleaning": 59,
+            "net": 448,
+            "concierge": 85.58,
+            "revenue": 303.42
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty",
+            "tourist_tax": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty|stripe #605/fb9919",
+        "source": "manual",
+        "commission": 20,
+        "propertyCleaningFee": 0,
+        "stripeFee": 4.29,
+        "nights": 1,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 95,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 4.95,
+            "fareCleaning": 0,
+            "totalFees": 0,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 90.05,
+            "payments": [
+                {
+                    "amount": 95,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 95,
+            "commission": 0,
+            "fee": 4.29,
+            "tax": 4.95,
+            "cleaning": 0,
+            "net": 90.71,
+            "concierge": 17.15,
+            "revenue": 68.61
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "manual|channel_commission=empty_or_zero_from_guesty|stripe #641/400818",
+        "source": "manual",
+        "commission": 22,
+        "propertyCleaningFee": 96,
+        "stripeFee": 50.85,
+        "nights": 9,
+        "guests": 4,
+        "raw": {
+            "hostPayout": 2024.07,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 98.07,
+            "fareCleaning": 143,
+            "totalFees": 143,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 1783,
+            "payments": [
+                {
+                    "amount": 2254.06,
+                    "status": "FAILED"
+                },
+                {
+                    "amount": 2024.07,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": []
+        },
+        "facturiza": {
+            "total": 2024.07,
+            "commission": 0,
+            "fee": 50.849999999999994,
+            "tax": 98.07,
+            "cleaning": 143,
+            "net": 1973.22,
+            "concierge": 381.07,
+            "revenue": 1351.08
+        },
+        "flags": {
+            "channel_commission": "empty_or_zero_from_guesty"
+        }
+    },
+    {
+        "name": "website||stripe #652/c06621",
+        "source": "website",
+        "commission": 10,
+        "propertyCleaningFee": 48,
+        "stripeFee": 4.6,
+        "nights": 1,
+        "guests": 2,
+        "raw": {
+            "hostPayout": 173.67,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 5.67,
+            "fareCleaning": 65,
+            "totalFees": 65,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 103,
+            "payments": [
+                {
+                    "amount": 173.67,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 173.67,
+            "commission": 0,
+            "fee": 4.6,
+            "tax": 5.67,
+            "cleaning": 65,
+            "net": 169.07,
+            "concierge": 9.84,
+            "revenue": 88.56
+        },
+        "flags": []
+    },
+    {
+        "name": "website||stripe #488/69b2b4",
+        "source": "website",
+        "commission": 20,
+        "propertyCleaningFee": 72,
+        "stripeFee": 17.57,
+        "nights": 7,
+        "guests": 3,
+        "raw": {
+            "hostPayout": 692.7,
+            "hostServiceFee": 0,
+            "totalPaymentFees": 0,
+            "totalTaxes": 30.7,
+            "fareCleaning": 104,
+            "totalFees": 104,
+            "transientOccupancyTax": 0,
+            "fareAccommodationAdjusted": 558,
+            "payments": [
+                {
+                    "amount": 692.7,
+                    "status": "SUCCEEDED"
+                }
+            ],
+            "confirmationTaxes": [
+                {
+                    "_id": "671a5deff4a737d740e432d3",
+                    "name": "Taxe de séjour",
+                    "type": "CITY_TAX",
+                    "units": "PERCENTAGE",
+                    "amount": 5.5,
+                    "quantifier": "PER_STAY",
+                    "appliedOnFees": [
+                        "AF"
+                    ],
+                    "appliedToAllFees": false,
+                    "isAppliedByDefault": false,
+                    "appliedByDefaultOnChannels": []
+                }
+            ]
+        },
+        "facturiza": {
+            "total": 692.7,
+            "commission": 0,
+            "fee": 17.57,
+            "tax": 30.7,
+            "cleaning": 104,
+            "net": 675.13,
+            "concierge": 108.09,
+            "revenue": 432.34
+        },
+        "flags": []
+    }
+]

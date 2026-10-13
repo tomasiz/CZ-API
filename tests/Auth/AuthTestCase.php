@@ -7,9 +7,15 @@ namespace Casamiza\Tests\Auth;
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
+use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
+use Casamiza\Domain\Company\LogoStorageInterface;
+use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
+use Casamiza\Domain\Reservation\ReservationRepositoryInterface;
+use Casamiza\Domain\Statement\InvoicedMonthsInterface;
+use Casamiza\Domain\Statement\StatementRepositoryInterface;
 use Casamiza\Domain\Team\InvitationNotifierInterface;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
 use Casamiza\Domain\Tenant\Tenant;
@@ -25,15 +31,21 @@ use Casamiza\Shared\Transaction;
 use Casamiza\Tests\AppTestCase;
 use Casamiza\Tests\Support\FixedClock;
 use Casamiza\Tests\Support\ImmediateTransaction;
+use Casamiza\Tests\Support\InMemoryCompanySettings;
+use Casamiza\Tests\Support\InMemoryExtras;
 use Casamiza\Tests\Support\InMemoryIntegrations;
 use Casamiza\Tests\Support\InMemoryInvitationNotifier;
 use Casamiza\Tests\Support\InMemoryLoginAttempts;
+use Casamiza\Tests\Support\InMemoryLogoStorage;
 use Casamiza\Tests\Support\InMemoryOwners;
 use Casamiza\Tests\Support\InMemoryProperties;
 use Casamiza\Tests\Support\InMemoryRefreshTokens;
+use Casamiza\Tests\Support\InMemoryReservations;
+use Casamiza\Tests\Support\InMemoryStatements;
 use Casamiza\Tests\Support\InMemoryTenants;
 use Casamiza\Tests\Support\InMemoryUsers;
 use Casamiza\Tests\Support\InMemoryUserTokens;
+use Casamiza\Tests\Support\InvoicedMonths;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Handler\MockHandler;
@@ -59,6 +71,12 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryIntegrations $integrations;
     protected InMemoryOwners $owners;
     protected InMemoryProperties $properties;
+    protected InMemoryReservations $reservations;
+    protected InMemoryExtras $extras;
+    protected InMemoryStatements $statements;
+    protected InvoicedMonths $invoiced;
+    protected InMemoryCompanySettings $company;
+    protected InMemoryLogoStorage $logos;
     protected TenantContext $context;
 
     /** Réponses de l'API des services tiers (aucun appel réseau réel dans les tests). */
@@ -93,6 +111,12 @@ abstract class AuthTestCase extends AppTestCase
         $this->integrations = new InMemoryIntegrations($context);
         $this->owners = new InMemoryOwners($context);
         $this->properties = new InMemoryProperties($context);
+        $this->reservations = new InMemoryReservations($context, $this->owners, $this->properties);
+        $this->extras = new InMemoryExtras($context);
+        $this->statements = new InMemoryStatements($context);
+        $this->invoiced = new InvoicedMonths();
+        $this->company = new InMemoryCompanySettings($context);
+        $this->logos = new InMemoryLogoStorage();
         $this->thirdParty = new MockHandler();
         $calls = new \ArrayObject();
         $this->thirdPartyCalls = $calls;
@@ -124,6 +148,12 @@ abstract class AuthTestCase extends AppTestCase
             IntegrationRepositoryInterface::class => $this->integrations,
             OwnerRepositoryInterface::class => $this->owners,
             PropertyRepositoryInterface::class => $this->properties,
+            ReservationRepositoryInterface::class => $this->reservations,
+            ExtraRepositoryInterface::class => $this->extras,
+            StatementRepositoryInterface::class => $this->statements,
+            InvoicedMonthsInterface::class => $this->invoiced,
+            CompanySettingsRepositoryInterface::class => $this->company,
+            LogoStorageInterface::class => $this->logos,
             ClientInterface::class => new Client(['handler' => $stack]),
             Transaction::class => new ImmediateTransaction(),
         ], compileContainer: false);

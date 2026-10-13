@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 use Casamiza\Domain\User\Role;
 use Casamiza\Http\Controller\AuthController;
+use Casamiza\Http\Controller\CompanyController;
+use Casamiza\Http\Controller\ExtraController;
 use Casamiza\Http\Controller\HealthController;
 use Casamiza\Http\Controller\IntegrationController;
 use Casamiza\Http\Controller\MeController;
 use Casamiza\Http\Controller\OwnerController;
 use Casamiza\Http\Controller\PropertyController;
+use Casamiza\Http\Controller\ReservationController;
+use Casamiza\Http\Controller\StatementController;
 use Casamiza\Http\Controller\SyncController;
 use Casamiza\Http\Controller\TeamController;
 use Casamiza\Http\Middleware\AuthMiddleware;
@@ -48,6 +52,33 @@ return static function (App $app): void {
             $api->get('/owners', [OwnerController::class, 'index']);
             $api->get('/properties', [PropertyController::class, 'index']);
             $api->post('/sync/guesty', [SyncController::class, 'guesty']);
+
+            // Réservations (importées de Guesty, montants calculés) : tous les membres ; recherche, filtres et pagination côté API.
+            $api->get('/reservations', [ReservationController::class, 'index']);
+
+            // Suivi mensuel d'un propriétaire : prestations supplémentaires et statut de facturation, tous les membres.
+            $api->get('/owners/{ownerId}/extras', [ExtraController::class, 'index']);
+            $api->post('/owners/{ownerId}/extras', [ExtraController::class, 'create']);
+            $api->patch('/owners/{ownerId}/extras/{id}', [ExtraController::class, 'update']);
+            $api->delete('/owners/{ownerId}/extras/{id}', [ExtraController::class, 'remove']);
+            $api->get('/statements', [StatementController::class, 'index']);
+            $api->put('/owners/{id}/statements/{month}/nothing-to-invoice', [StatementController::class, 'nothingToInvoice']);
+
+            // Saisies locales du propriétaire (SIRET, raison sociale, clé Stripe en écriture seule) : administrateurs seulement.
+            $api->group('/owners', function (RouteCollectorProxy $owners): void {
+                $owners->patch('/{id}', [OwnerController::class, 'update']);
+                $owners->delete('/{id}/stripe-key', [OwnerController::class, 'removeStripeKey']);
+            })->add(new RoleMiddleware(Role::Admin));
+
+            // Identité de l'entreprise (mentions légales, contact, modèles d'e-mail, logo) : administrateurs seulement.
+            $api->group('/settings/company', function (RouteCollectorProxy $company): void {
+                $company->get('', [CompanyController::class, 'show']);
+                $company->patch('', [CompanyController::class, 'update']);
+                $company->get('/logo', [CompanyController::class, 'logo']);
+                // POST et non PUT : PHP ne remplit `$_FILES` que pour un POST multipart.
+                $company->post('/logo', [CompanyController::class, 'uploadLogo']);
+                $company->delete('/logo', [CompanyController::class, 'removeLogo']);
+            })->add(new RoleMiddleware(Role::Admin));
 
             // Services tiers (Guesty…) : administrateurs seulement, les secrets ne sont jamais renvoyés.
             $api->group('/settings/integrations', function (RouteCollectorProxy $integrations): void {

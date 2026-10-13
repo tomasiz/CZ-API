@@ -2,6 +2,8 @@
 .env
 /storage/logs/*
 !/storage/logs/.gitkeep
+# Logo de l'entreprise envoyé par l'admin : donnée d'exécution
+/storage/logos/*
 .vite/
 .phpunit.cache/
 .php-cs-fixer.cache

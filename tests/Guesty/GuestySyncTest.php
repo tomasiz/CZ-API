@@ -182,6 +182,22 @@ final class GuestySyncTest extends AuthTestCase
         self::assertSame('2 quai Napoléon, Ajaccio', $properties[0]['address']);
     }
 
+    public function testInactivePropertiesStayListedUnderTheirOwner(): void
+    {
+        $this->connect();
+        $this->queue(
+            [self::ok(self::page([self::owner('O1', 'Alice', active: false)], 1))],
+            [self::ok(self::page([self::listing('L1', 'Villa', 'O1', active: false), self::listing('L2', 'Loft', 'O1')], 2))],
+        );
+        $this->sync();
+
+        // Le logement d'un propriétaire désactivé (archivé avec lui) ne doit pas faire paraître sa ligne vide.
+        $owners = $this->listOf('/owners');
+        self::assertFalse($owners[0]['active']);
+        self::assertSame(['Villa', 'Loft'], array_column($owners[0]['properties'], 'name'));
+        self::assertSame([false, true], array_column($owners[0]['properties'], 'active'));
+    }
+
     public function testThePrefixGuestyAddsToOwnerNamesIsDropped(): void
     {
         $this->connect();
@@ -199,6 +215,29 @@ final class GuestySyncTest extends AuthTestCase
         $this->sync();
 
         self::assertSame(['Alice Martin', 'Bob', 'Paul Pierre', 'Philippe P - Durand'], array_column($this->listOf('/owners'), 'name'));
+    }
+
+    public function testOwnerNamesAreSplitIntoFirstAndLastName(): void
+    {
+        $this->connect();
+        $withFields = self::owner('O1', 'P - Jean Paul DeStoop') + ['firstName' => 'P - Jean Paul', 'lastName' => 'DeStoop'];
+        $this->queue(
+            [self::ok(self::page([
+                $withFields,                                       // prénom et nom fournis : préfixe retiré du prénom
+                self::owner('O2', 'P - Alice Martin'),             // nom complet seul : le dernier mot est le nom
+                self::owner('O3', 'Madonna'),                      // un seul mot : c'est le nom de famille
+                self::owner('O4', 'P - Ghjulia  Battesti') + ['firstName' => ' P - Ghjulia ', 'lastName' => ' Battesti'], // espaces superflus
+            ], 4))],
+            [self::ok(self::page([], 0))],
+            fieldLookup: false,
+        );
+
+        $this->sync();
+
+        $owners = $this->listOf('/owners');
+        self::assertSame(['Jean Paul', 'Alice', '', 'Ghjulia'], array_column($owners, 'firstName'));
+        self::assertSame(['DeStoop', 'Martin', 'Madonna', 'Battesti'], array_column($owners, 'lastName'));
+        self::assertSame(['Jean Paul DeStoop', 'Alice Martin', 'Madonna', 'Ghjulia Battesti'], array_column($owners, 'name'));
     }
 
     public function testAnUnpaginatedOwnerArrayIsTheCompleteList(): void
@@ -227,7 +266,7 @@ final class GuestySyncTest extends AuthTestCase
         self::assertInstanceOf(Owner::class, $owner);
         $this->context->reset();
         $this->context->set('tenant-a');
-        $this->owners->update(new Owner($owner->id, 'O1', $owner->name, $owner->email, $owner->phone, $owner->address, $owner->type, 'SCI Alice', '12345678901234', $owner->commission, null));
+        $this->owners->updateLocal($owner->withLocalFields('SCI Alice', '12345678901234')->withStripeSecret('encrypted-stripe-key'));
         $this->context->reset();
 
         $this->queue([self::ok(self::page([self::owner('O1', 'Alice Renommée', commission: 18)], 1))], [self::ok(self::page([self::listing('L1', 'Villa Neuve', 'O1', fee: 120, linen: 25)], 1))]);
@@ -239,6 +278,7 @@ final class GuestySyncTest extends AuthTestCase
         self::assertSame(18.0, $owner->commission ?? null);
         self::assertSame('12345678901234', $owner->siret ?? null);
         self::assertSame('SCI Alice', $owner->companyName ?? null);
+        self::assertSame('encrypted-stripe-key', $owner->stripeSecretEncrypted ?? null);
         // Les coûts de ménage et de linge appartiennent à Guesty : ils suivent ses changements.
         $property = $this->properties->byGuestyId('tenant-a', 'L1');
         self::assertSame('Villa Neuve', $property->name ?? null);

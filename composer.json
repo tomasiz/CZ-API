@@ -37,6 +37,7 @@
         ],
         "console": "bin/php bin/console",
         "sync:guesty": "bin/php bin/console sync:guesty",
+        "sync:reservations": "bin/php bin/console sync:reservations",
         "seed": "bin/php vendor/bin/phinx seed:run"
     },
     "require-dev": {
