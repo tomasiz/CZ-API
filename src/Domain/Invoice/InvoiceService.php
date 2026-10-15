@@ -40,6 +40,7 @@ final readonly class InvoiceService
         private StatementRepositoryInterface $statements,
         private InvoiceCalculator $calculator,
         private InvoiceSnapshotBuilder $snapshots,
+        private InvoiceFileStorageInterface $files,
         private Transaction $transaction,
         private ClockInterface $clock,
     ) {}
@@ -99,11 +100,44 @@ final readonly class InvoiceService
     }
 
     /**
-     * @return list<Invoice> de la plus récente à la plus ancienne
+     * Les factures (annulées comprises), de la plus récente à la plus ancienne, avec le propriétaire et les logements facturés ;
+     * restreintes à un propriétaire et/ou à un mois si fournis.
+     *
+     * @return list<InvoiceRow>
+     * @throws NotFoundException `owner_not_found`
      */
-    public function list(): array
+    public function list(?string $ownerId = null, ?string $month = null): array
     {
-        return $this->invoices->all();
+        $names = [];
+        foreach ($this->owners->all() as $owner) {
+            $names[$owner->id] = $owner->name;
+        }
+        if ($ownerId !== null && !isset($names[$ownerId])) {
+            throw new NotFoundException('owner_not_found');
+        }
+        $properties = $this->invoices->propertyNames();
+
+        $rows = [];
+        foreach ($this->invoices->all() as $invoice) {
+            if (($ownerId === null || $invoice->ownerId === $ownerId) && ($month === null || $invoice->month === $month)) {
+                $rows[] = new InvoiceRow($invoice, $names[$invoice->ownerId] ?? '', $properties[$invoice->id] ?? []);
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Le PDF de la facture (`$recap = false`) ou de son récapitulatif lié (`$recap = true`).
+     *
+     * @throws NotFoundException `invoice_not_found`, `pdf_not_found` (aucun fichier pour cette facture, ou fichier absent du stockage)
+     */
+    public function pdf(string $id, bool $recap): string
+    {
+        $invoice = $this->find($id);
+        $path = $recap ? $invoice->recapPdfPath : $invoice->pdfPath;
+
+        return ($path === null ? null : $this->files->contents($path)) ?? throw new NotFoundException('pdf_not_found');
     }
 
     /** @throws NotFoundException `invoice_not_found` */

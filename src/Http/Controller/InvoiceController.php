@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Casamiza\Http\Controller;
 
-use Casamiza\Domain\Invoice\Invoice;
+use Casamiza\Domain\Invoice\InvoiceRow;
 use Casamiza\Domain\Invoice\InvoiceService;
 use Casamiza\Domain\Invoice\PaymentMethod;
 use Casamiza\Domain\Invoice\PaymentStatus;
+use Casamiza\Domain\Statement\BillingMonth;
 use Casamiza\Http\Request\Input;
 use Casamiza\Http\Resource\InvoiceResource;
 use Casamiza\Http\Response\JsonResponder;
@@ -26,13 +27,22 @@ final readonly class InvoiceController
         private JsonResponder $json,
     ) {}
 
+    /** `?ownerId=` et/ou `?month=AAAA-MM` (facultatifs) : les factures du propriétaire et/ou du mois, annulées comprises. */
     public function index(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
+        $input = Input::fromBody($request->getQueryParams());
+        $input->allowOnly('ownerId', 'month');
+        $ownerId = $input->optionalString('ownerId', 64);
+        $month = $input->optionalString('month', 7);
+        if ($month !== null && !BillingMonth::isValid($month)) {
+            $input->fail('month', 'invalid_value');
+        }
+        $input->assertValid();
         $now = $this->clock->now();
 
         return $this->json->data($response, array_map(
-            static fn(Invoice $invoice): array => InvoiceResource::toArray($invoice, $now),
-            $this->invoices->list(),
+            static fn(InvoiceRow $row): array => InvoiceResource::row($row, $now),
+            $this->invoices->list($ownerId, $month),
         ));
     }
 
@@ -52,7 +62,7 @@ final readonly class InvoiceController
     }
 
     /**
-     * `status` (`paid` | `unpaid`), `method` (`wire`, `cash`, `credit_card`, `other` : obligatoire si payée) et `date` (`AAAA-MM-JJ`, aujourd'hui par défaut).
+     * `status` (`paid` | `unpaid`), `method` (`wire`, `check`, `cash`, `credit_card`, `other` : obligatoire si payée) et `date` (`AAAA-MM-JJ`, aujourd'hui par défaut).
      *
      * @param array<string, string> $args
      */
@@ -71,6 +81,33 @@ final readonly class InvoiceController
         $invoice = $this->invoices->setPayment($args['id'], $status, $method, $date);
 
         return $this->json->data($response, InvoiceResource::toArray($invoice, $this->clock->now()));
+    }
+
+    /**
+     * Le PDF de la facture (`/pdf`) ou de son récapitulatif lié (`/recap-pdf`), servi par l'API (jamais d'URL publique).
+     * Le nom proposé au téléchargement est composé par le front.
+     *
+     * @param array<string, string> $args
+     */
+    public function pdf(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->file($response, $this->invoices->pdf($args['id'], false));
+    }
+
+    /** @param array<string, string> $args */
+    public function recapPdf(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        return $this->file($response, $this->invoices->pdf($args['id'], true));
+    }
+
+    private function file(ResponseInterface $response, string $contents): ResponseInterface
+    {
+        $response->getBody()->write($contents);
+
+        return $response
+            ->withHeader('Content-Type', 'application/pdf')
+            ->withHeader('Content-Disposition', 'inline; filename="document.pdf"')
+            ->withHeader('Cache-Control', 'private, no-store');
     }
 
     /**

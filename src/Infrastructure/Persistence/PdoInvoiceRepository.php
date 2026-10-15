@@ -20,7 +20,7 @@ use UnexpectedValueException;
 final class PdoInvoiceRepository extends BaseRepository implements InvoiceRepositoryInterface
 {
     /** Tout sauf l'instantané JSON, volumineux et inutile dans une liste. */
-    private const LIST_COLUMNS = 'id, number, owner_id, month, period_start, period_end, invoice_date, due_date, amount_ht, vat, amount_ttc, payment_status, payment_method, payment_date, cancelled_at, note, pdf_path, recap_pdf_path, pdf_sha256, source, legacy_id, created_at';
+    private const LIST_COLUMNS = 'id, number, owner_id, month, period_start, period_end, invoice_date, due_date, amount_ht, vat, amount_ttc, payment_status, payment_method, payment_date, cancelled_at, note, pdf_path, recap_pdf_path, pdf_sha256, pennylane_id, source, legacy_id, created_at';
 
     protected function table(): string
     {
@@ -98,6 +98,23 @@ final class PdoInvoiceRepository extends BaseRepository implements InvoiceReposi
     public function all(): array
     {
         return array_map($this->hydrate(...), $this->select(columns: self::LIST_COLUMNS, suffix: 'ORDER BY number DESC'));
+    }
+
+    public function propertyNames(): array
+    {
+        $statement = $this->pdo()->prepare(
+            'SELECT DISTINCT ir.invoice_id, p.name FROM invoice_reservations ir
+             JOIN properties p ON p.tenant_id = ir.tenant_id AND p.id = ir.property_id
+             WHERE ir.tenant_id = :tenant ORDER BY p.name',
+        );
+        $statement->execute(['tenant' => $this->tenant->id()]);
+
+        $names = [];
+        foreach ($statement->fetchAll() as $row) {
+            $names[(string) $row['invoice_id']][] = (string) $row['name'];
+        }
+
+        return $names;
     }
 
     public function active(?string $ownerId, ?string $month): array
@@ -242,6 +259,7 @@ final class PdoInvoiceRepository extends BaseRepository implements InvoiceReposi
             pdfPath: isset($row['pdf_path']) ? (string) $row['pdf_path'] : null,
             recapPdfPath: isset($row['recap_pdf_path']) ? (string) $row['recap_pdf_path'] : null,
             pdfSha256: isset($row['pdf_sha256']) ? (string) $row['pdf_sha256'] : null,
+            pennylaneId: isset($row['pennylane_id']) ? (string) $row['pennylane_id'] : null,
         );
     }
 }

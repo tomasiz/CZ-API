@@ -26,7 +26,30 @@ final class InMemoryInvoices implements InvoiceRepositoryInterface
     /** @var array<string, int> prochain numéro par tenant */
     private array $sequence = [];
 
-    public function __construct(private readonly TenantContext $context) {}
+    public function __construct(
+        private readonly TenantContext $context,
+        private readonly ?InMemoryProperties $properties = null,
+    ) {}
+
+    public function propertyNames(): array
+    {
+        $names = [];
+        $byId = [];
+        foreach ($this->properties?->all() ?? [] as $property) {
+            $byId[$property->id] = $property->name;
+        }
+        $prefix = $this->context->id() . '|';
+        foreach ($this->reservations as $key => $activity) {
+            if (!str_starts_with($key, $prefix)) {
+                continue;
+            }
+            $list = array_unique(array_map(static fn(DraftReservation $r): string => $byId[$r->propertyId] ?? $r->propertyId, $activity));
+            sort($list);
+            $names[substr($key, strlen($prefix))] = $list;
+        }
+
+        return $names;
+    }
 
     public function nextNumber(): int
     {

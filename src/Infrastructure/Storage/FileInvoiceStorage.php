@@ -51,6 +51,18 @@ final readonly class FileInvoiceStorage implements InvoiceFileStorageInterface
         return new StoredInvoiceFile($relative, $sha256);
     }
 
+    public function contents(string $path): ?string
+    {
+        // Le chemin vient de la base, mais on le borne quand même : uniquement le dossier du tenant courant.
+        if (preg_match('#^invoices/' . preg_quote($this->tenant->id(), '#') . '/\d{4}/[\w-]+\.pdf$#', $path) !== 1) {
+            return null;
+        }
+        $file = $this->root . '/' . $path;
+        $contents = is_file($file) ? file_get_contents($file) : false;
+
+        return $contents === false ? null : $contents;
+    }
+
     public function discard(string $path): void
     {
         if (preg_match('#^invoices/[\w-]+/\d{4}/[\w-]+\.pdf$#', $path) === 1) {

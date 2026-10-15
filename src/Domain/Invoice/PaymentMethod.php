@@ -7,6 +7,7 @@ namespace Casamiza\Domain\Invoice;
 enum PaymentMethod: string
 {
     case Wire = 'wire';
+    case Check = 'check';
     case Cash = 'cash';
     case CreditCard = 'credit_card';
     case Other = 'other';

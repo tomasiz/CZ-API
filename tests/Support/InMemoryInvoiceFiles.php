@@ -32,6 +32,11 @@ final class InMemoryInvoiceFiles implements InvoiceFileStorageInterface
         return new StoredInvoiceFile($path, hash('sha256', $content));
     }
 
+    public function contents(string $path): ?string
+    {
+        return $this->files[$path] ?? null;
+    }
+
     public function discard(string $path): void
     {
         unset($this->files[$path]);

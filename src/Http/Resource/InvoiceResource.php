@@ -5,10 +5,21 @@ declare(strict_types=1);
 namespace Casamiza\Http\Resource;
 
 use Casamiza\Domain\Invoice\Invoice;
+use Casamiza\Domain\Invoice\InvoiceRow;
 use DateTimeImmutable;
 
 final class InvoiceResource
 {
+    /**
+     * Une facture de la liste : la facture, plus `ownerName` et `properties` (logements facturés).
+     *
+     * @return array<string, mixed>
+     */
+    public static function row(InvoiceRow $row, DateTimeImmutable $now): array
+    {
+        return self::toArray($row->invoice, $now) + ['ownerName' => $row->ownerName, 'properties' => $row->propertyNames];
+    }
+
     /**
      * `status` : `cancelled`, `paid`, `overdue` (non payée après l'échéance) ou `unpaid`. L'instantané JSON n'est jamais inclus
      * (route dédiée).
@@ -40,6 +51,9 @@ final class InvoiceResource
             'cancelledAt' => $invoice->cancelledAt?->format(DATE_ATOM),
             'note' => $invoice->note,
             'source' => $invoice->source->value,
+            'pennylaneId' => $invoice->pennylaneId,
+            'hasPdf' => $invoice->pdfPath !== null,
+            'hasRecap' => $invoice->recapPdfPath !== null,
             'createdAt' => $invoice->createdAt?->format(DATE_ATOM),
         ];
     }

@@ -35,6 +35,13 @@ interface InvoiceRepositoryInterface
     public function all(): array;
 
     /**
+     * Noms des logements facturés par chaque facture, triés par nom (d'après l'activité figée des réservations).
+     *
+     * @return array<string, list<string>> noms par identifiant de facture
+     */
+    public function propertyNames(): array;
+
+    /**
      * Les factures **non annulées**, restreintes à un propriétaire et/ou à un mois si fournis (sans leur instantané).
      *
      * @return list<Invoice>

@@ -38,6 +38,7 @@ final readonly class Invoice
         public ?string $pdfPath = null,
         public ?string $recapPdfPath = null,
         public ?string $pdfSha256 = null,
+        public ?string $pennylaneId = null,
     ) {}
 
     /** @param array<string, mixed> $snapshot */

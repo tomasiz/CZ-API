@@ -70,6 +70,8 @@ return static function (App $app): void {
                 $invoices->get('', [InvoiceController::class, 'index']);
                 $invoices->post('', [InvoiceController::class, 'create']);
                 $invoices->patch('/{id}/payment', [InvoiceController::class, 'payment']);
+                $invoices->get('/{id}/pdf', [InvoiceController::class, 'pdf']);
+                $invoices->get('/{id}/recap-pdf', [InvoiceController::class, 'recapPdf']);
                 $invoices->get('/{id}/json', [InvoiceController::class, 'snapshot']);
             })->add(new RoleMiddleware(Role::Admin));
 

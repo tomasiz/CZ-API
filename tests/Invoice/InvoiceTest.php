@@ -259,6 +259,69 @@ final class InvoiceTest extends AuthTestCase
         self::assertCount(1, $this->listing('bob@b.test'));
     }
 
+    public function testTheInvoiceAndRecapPdfsAreServedByTheApiToAdministratorsOnly(): void
+    {
+        $invoice = $this->issue();
+        $path = '/invoices/' . $invoice['id'];
+
+        // Une facture émise dans Casamiza n'a pas encore de PDF (moteur à venir) : 404, et la liste le dit.
+        self::assertFalse($invoice['hasPdf']);
+        self::assertFalse($invoice['hasRecap']);
+        $none = $this->call('GET', $path . '/pdf');
+        self::assertSame(404, $none->getStatusCode());
+        self::assertSame('pdf_not_found', $this->errorCode($none));
+
+        // Une facture reprise, avec ses deux fichiers.
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $key = 'tenant-a|' . $invoice['id'];
+        $this->invoiceFiles->files['invoices/test/2026/a.pdf'] = '%PDF-1.4 facture';
+        $this->invoiceFiles->files['invoices/test/2026/b.pdf'] = '%PDF-1.4 recap';
+        $this->invoices->rows[$key] = new Invoice(...[...get_object_vars($this->invoices->rows[$key]), 'pdfPath' => 'invoices/test/2026/a.pdf', 'recapPdfPath' => 'invoices/test/2026/b.pdf']);
+        $this->context->reset();
+
+        $pdf = $this->call('GET', $path . '/pdf');
+        self::assertSame(200, $pdf->getStatusCode());
+        self::assertSame('application/pdf', $pdf->getHeaderLine('Content-Type'));
+        self::assertSame('private, no-store', $pdf->getHeaderLine('Cache-Control'));
+        self::assertSame('%PDF-1.4 facture', (string) $pdf->getBody());
+        self::assertSame('%PDF-1.4 recap', (string) $this->call('GET', $path . '/recap-pdf')->getBody());
+        self::assertSame([true, true], [$this->listing()[0]['hasPdf'], $this->listing()[0]['hasRecap']]);
+
+        // Fichier référencé mais absent du stockage : 404 aussi, jamais une erreur serveur.
+        unset($this->invoiceFiles->files['invoices/test/2026/b.pdf']);
+        self::assertSame('pdf_not_found', $this->errorCode($this->call('GET', $path . '/recap-pdf')));
+
+        // Droits et isolation.
+        foreach (['/pdf', '/recap-pdf'] as $suffix) {
+            self::assertSame(403, $this->call('GET', $path . $suffix, null, 'marc@a.test')->getStatusCode());
+            $other = $this->call('GET', $path . $suffix, null, 'bob@b.test');
+            self::assertSame(404, $other->getStatusCode());
+            self::assertSame('invoice_not_found', $this->errorCode($other));
+        }
+    }
+
+    public function testTheListNamesTheOwnerAndTheBilledPropertiesAndCanBeFiltered(): void
+    {
+        $this->issue();
+        $this->issue('owner-2', '2026-09');
+
+        $rows = $this->listing();
+        self::assertSame(['Bob Durand', 'Alice Martin'], array_column($rows, 'ownerName'));
+        self::assertSame([['Studio Port'], ['Villa Santa']], array_column($rows, 'properties'));
+        self::assertNull($rows[0]['pennylaneId']);
+
+        $mine = $this->json($this->call('GET', '/invoices?ownerId=owner-1&month=2026-09'))['data'] ?? null;
+        self::assertIsArray($mine);
+        self::assertCount(1, $mine);
+        self::assertSame('owner-1', $mine[0]['ownerId'] ?? null);
+        self::assertSame([], $this->json($this->call('GET', '/invoices?month=2026-08'))['data'] ?? null);
+
+        self::assertSame('owner_not_found', $this->errorCode($this->call('GET', '/invoices?ownerId=owner-b')));
+        self::assertSame(422, $this->call('GET', '/invoices?month=2026-9')->getStatusCode());
+        self::assertSame(422, $this->call('GET', '/invoices?foo=1')->getStatusCode());
+    }
+
     public function testAnInvoiceOfAnotherTenantOrWithoutSnapshotIsNotReadable(): void
     {
         $invoice = $this->issue();
@@ -291,6 +354,12 @@ final class InvoiceTest extends AuthTestCase
         $this->clock->advance('-3 months');
         $again = $this->data($this->call('PATCH', $path, ['status' => 'paid', 'method' => 'credit_card', 'date' => '2026-10-07']));
         self::assertSame(['credit_card', '2026-10-07'], [$again['paymentMethod'], $again['paymentDate']]);
+
+        // Chaque mode de paiement est accepté, le chèque compris.
+        foreach (['wire', 'check', 'cash', 'credit_card', 'other'] as $method) {
+            $result = $this->data($this->call('PATCH', $path, ['status' => 'paid', 'method' => $method]));
+            self::assertSame($method, $result['paymentMethod']);
+        }
     }
 
     public function testThePaymentIsValidated(): void
