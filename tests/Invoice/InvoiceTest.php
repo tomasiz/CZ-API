@@ -410,6 +410,21 @@ final class InvoiceTest extends AuthTestCase
         self::assertSame('month_not_billable', $this->errorCode($this->call('POST', '/invoices/preview', ['ownerId' => 'owner-1', 'month' => '2026-10'])));
     }
 
+    public function testTheRecapDraftIsAvailableForAMonthMarkedNothingToInvoice(): void
+    {
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $this->statements->save(new Statement('statement-1', 'owner-1', '2026-09', true));
+        $this->context->reset();
+
+        $response = $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-09']);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame('%PDF-fake recap', (string) $response->getBody());
+        // La facture, elle, reste exclue.
+        self::assertSame('month_marked_nothing_to_invoice', $this->errorCode($this->call('POST', '/invoices/preview', ['ownerId' => 'owner-1', 'month' => '2026-09'])));
+    }
+
     public function testTheRecapDraftIsRefusedWithoutStayForeignOwnersAndManagers(): void
     {
         $empty = $this->call('POST', '/owners/owner-2/recap', ['month' => '2026-08']);

@@ -32,6 +32,8 @@ final class OwnerResource
             'stripeConfigured' => $owner->hasStripeKey(),
             // Faux pour un propriétaire désactivé (ou disparu) dans Guesty.
             'active' => !$owner->isArchived(),
+            // Faux si Guesty le marque inactif (portail propriétaire non utilisé) : il peut rester `active` s'il a un logement actif.
+            'guestyActive' => $owner->guestyActive,
             'properties' => array_map(
                 static fn(Property $p): array => ['id' => $p->id, 'name' => $p->name, 'address' => $p->address, 'cleaningFee' => $p->cleaningFee, 'linenFee' => $p->linenFee, 'active' => !$p->isArchived()],
                 $properties,

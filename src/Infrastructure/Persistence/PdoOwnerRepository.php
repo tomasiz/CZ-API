@@ -55,6 +55,7 @@ final class PdoOwnerRepository extends BaseRepository implements OwnerRepository
             'address' => $owner->address,
             'type' => $owner->type->value,
             'commission' => $owner->commission,
+            'guesty_active' => $owner->guestyActive ? 1 : 0,
             'archived_at' => $owner->archivedAt === null ? null : DbDate::toDb($owner->archivedAt),
         ];
     }
@@ -92,6 +93,7 @@ final class PdoOwnerRepository extends BaseRepository implements OwnerRepository
             commission: $row['commission'] === null ? null : (float) $row['commission'],
             stripeSecretEncrypted: $row['stripe_secret_encrypted'] === null ? null : (string) $row['stripe_secret_encrypted'],
             archivedAt: DbDate::fromDbOrNull($row['archived_at']),
+            guestyActive: (bool) ($row['guesty_active'] ?? true),
         );
     }
 }

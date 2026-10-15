@@ -117,11 +117,12 @@ final readonly class InvoiceService
     /**
      * Récapitulatif propriétaire d'un mois **pas encore facturé** : un vrai PDF (sans filigrane), calculé sur les réservations
      * d'aujourd'hui et non conservé ; la facture émise fabriquera le sien, figé. Contrairement à la facture, il se génère pour
-     * **n'importe quel mois** (en cours ou à venir compris : les réservations futures sont déjà importées).
+     * **n'importe quel mois** (en cours ou à venir compris : les réservations futures sont déjà importées), y compris un mois
+     * marqué « pas de facture ce mois-ci ».
      *
      * @throws NotFoundException `owner_not_found`
      * @throws UnprocessableException `month_not_billable` (mois invalide ou antérieur à janvier 2025), `nothing_to_bill` (aucune réservation ce mois-là)
-     * @throws ConflictException `month_already_invoiced`, `month_marked_nothing_to_invoice`
+     * @throws ConflictException `month_already_invoiced`
      */
     public function draftRecap(string $ownerId, string $month): string
     {
@@ -130,7 +131,8 @@ final readonly class InvoiceService
         }
         $now = $this->clock->now();
         $owner = $this->owners->find($ownerId) ?? throw new NotFoundException('owner_not_found');
-        $this->assertNotInvoiced($owner, $month);
+        // Un mois « pas de facture » garde son récapitulatif : seule la facture est exclue
+        $this->assertNotInvoiced($owner, $month, true);
 
         [$invoice, $draft, $billings] = $this->compose($owner, $month, null, 0, $now);
         $snapshot = $this->snapshots->build($invoice, $owner, $billings, $draft);
@@ -260,12 +262,12 @@ final readonly class InvoiceService
     /**
      * @throws ConflictException `month_already_invoiced`, `month_marked_nothing_to_invoice`
      */
-    private function assertNotInvoiced(Owner $owner, string $month): void
+    private function assertNotInvoiced(Owner $owner, string $month, bool $allowNothingToInvoice = false): void
     {
         if ($this->invoices->hasActive($owner->id, $month)) {
             throw new ConflictException('month_already_invoiced');
         }
-        if ($this->statements->find($owner->id, $month)?->nothingToInvoice === true) {
+        if (!$allowNothingToInvoice && $this->statements->find($owner->id, $month)?->nothingToInvoice === true) {
             throw new ConflictException('month_marked_nothing_to_invoice');
         }
     }

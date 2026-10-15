@@ -10,6 +10,10 @@ use DateTimeImmutable;
 /**
  * Propriétaire. Les champs de Guesty (nom, e-mail, téléphone, adresse, type, commission) sont réécrits à chaque
  * synchronisation ; `companyName`, `siret` et la clé Stripe sont locaux et n'y sont jamais touchés.
+ *
+ * Deux états distincts : `archivedAt` (hors service : disparu de Guesty, ou inactif **sans** logement actif) et
+ * `guestyActive` (valeur brute de Guesty : faux = portail propriétaire non utilisé). Un propriétaire inactif dans Guesty
+ * qui a encore un logement actif n'est pas archivé : il reste visible et facturable.
  */
 final readonly class Owner
 {
@@ -32,15 +36,16 @@ final readonly class Owner
         public ?float $commission,
         public ?string $stripeSecretEncrypted,
         public ?DateTimeImmutable $archivedAt,
+        public bool $guestyActive = true,
     ) {}
 
     /** @param non-empty-string $id */
     public static function fromGuesty(string $id, GuestyOwner $guesty, DateTimeImmutable $now): self
     {
-        return new self($id, $guesty->guestyId, $guesty->name, $guesty->firstName, $guesty->lastName, $guesty->email, $guesty->phone, $guesty->address, $guesty->type, '', '', $guesty->commission, null, $guesty->active ? null : $now);
+        return new self($id, $guesty->guestyId, $guesty->name, $guesty->firstName, $guesty->lastName, $guesty->email, $guesty->phone, $guesty->address, $guesty->type, '', '', $guesty->commission, null, $guesty->isDormant() ? $now : null, $guesty->active);
     }
 
-    /** Applique l'état de Guesty ; un propriétaire déjà archivé garde sa date d'archivage tant qu'il reste inactif. */
+    /** Applique l'état de Guesty ; un propriétaire déjà archivé garde sa date d'archivage tant qu'il reste hors service. */
     public function mergedWith(GuestyOwner $guesty, DateTimeImmutable $now): self
     {
         return new self(
@@ -57,7 +62,8 @@ final readonly class Owner
             $this->siret,
             $guesty->commission,
             $this->stripeSecretEncrypted,
-            $guesty->active ? null : ($this->archivedAt ?? $now),
+            $guesty->isDormant() ? ($this->archivedAt ?? $now) : null,
+            $guesty->active,
         );
     }
 
@@ -69,12 +75,12 @@ final readonly class Owner
     /** Saisies locales : un champ nul reste inchangé, une chaîne vide efface la valeur. */
     public function withLocalFields(?string $companyName, ?string $siret): self
     {
-        return new self($this->id, $this->guestyId, $this->name, $this->firstName, $this->lastName, $this->email, $this->phone, $this->address, $this->type, $companyName ?? $this->companyName, $siret ?? $this->siret, $this->commission, $this->stripeSecretEncrypted, $this->archivedAt);
+        return new self($this->id, $this->guestyId, $this->name, $this->firstName, $this->lastName, $this->email, $this->phone, $this->address, $this->type, $companyName ?? $this->companyName, $siret ?? $this->siret, $this->commission, $this->stripeSecretEncrypted, $this->archivedAt, $this->guestyActive);
     }
 
     public function withStripeSecret(?string $encrypted): self
     {
-        return new self($this->id, $this->guestyId, $this->name, $this->firstName, $this->lastName, $this->email, $this->phone, $this->address, $this->type, $this->companyName, $this->siret, $this->commission, $encrypted, $this->archivedAt);
+        return new self($this->id, $this->guestyId, $this->name, $this->firstName, $this->lastName, $this->email, $this->phone, $this->address, $this->type, $this->companyName, $this->siret, $this->commission, $encrypted, $this->archivedAt, $this->guestyActive);
     }
 
     public function hasStripeKey(): bool
@@ -96,6 +102,6 @@ final readonly class Owner
 
     private function withArchivedAt(?DateTimeImmutable $archivedAt): self
     {
-        return new self($this->id, $this->guestyId, $this->name, $this->firstName, $this->lastName, $this->email, $this->phone, $this->address, $this->type, $this->companyName, $this->siret, $this->commission, $this->stripeSecretEncrypted, $archivedAt);
+        return new self($this->id, $this->guestyId, $this->name, $this->firstName, $this->lastName, $this->email, $this->phone, $this->address, $this->type, $this->companyName, $this->siret, $this->commission, $this->stripeSecretEncrypted, $archivedAt, $this->guestyActive);
     }
 }

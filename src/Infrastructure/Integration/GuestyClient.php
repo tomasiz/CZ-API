@@ -49,7 +49,7 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
     {
         $rows = $this->fetchAll($this->session(), '/v1/owners', [
             'pagination' => 'true',
-            'fields' => '_id fullName firstName lastName email phone address personalAddress active businessInformation',
+            'fields' => '_id fullName firstName lastName email phone address personalAddress active businessInformation listings',
         ]);
 
         $owners = [];
@@ -91,6 +91,7 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
                 type: $businessType === '' || $businessType === 'INDIVIDUAL' ? OwnerType::Individual : OwnerType::Company,
                 commission: is_int($commission) || is_float($commission) ? (float) $commission : null,
                 active: ($row['active'] ?? true) !== false,
+                hasActiveListing: self::hasActiveListing($row['listings'] ?? null),
             );
         }
 
@@ -389,6 +390,18 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
     private static function rows(array $items): array
     {
         return array_values(array_filter($items, is_array(...)));
+    }
+
+    /** Vrai si un des logements embarqués dans le propriétaire est actif (un `active` absent compte comme actif). */
+    private static function hasActiveListing(mixed $listings): bool
+    {
+        foreach (self::rows(self::map($listings)) as $listing) {
+            if (($listing['active'] ?? true) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array<array-key, mixed> */

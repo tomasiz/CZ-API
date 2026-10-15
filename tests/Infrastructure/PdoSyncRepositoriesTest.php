@@ -38,7 +38,7 @@ final class PdoSyncRepositoriesTest extends AppTestCase
     protected function setUp(): void
     {
         $pdo = new PDO('sqlite::memory:', options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
-        $pdo->exec("CREATE TABLE owners (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, guesty_id TEXT NOT NULL, name TEXT NOT NULL, first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', type TEXT NOT NULL DEFAULT 'individual', company_name TEXT NOT NULL DEFAULT '', siret TEXT NOT NULL DEFAULT '', commission NUMERIC NULL, stripe_secret_encrypted TEXT NULL, archived_at TEXT NULL, UNIQUE (tenant_id, guesty_id))");
+        $pdo->exec("CREATE TABLE owners (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, guesty_id TEXT NOT NULL, name TEXT NOT NULL, first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', type TEXT NOT NULL DEFAULT 'individual', company_name TEXT NOT NULL DEFAULT '', siret TEXT NOT NULL DEFAULT '', commission NUMERIC NULL, guesty_active INTEGER NOT NULL DEFAULT 1, stripe_secret_encrypted TEXT NULL, archived_at TEXT NULL, UNIQUE (tenant_id, guesty_id))");
         $pdo->exec("CREATE TABLE properties (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, guesty_id TEXT NOT NULL, owner_id TEXT NULL, name TEXT NOT NULL, address TEXT NOT NULL DEFAULT '', cleaning_fee NUMERIC NOT NULL DEFAULT 0, linen_fee NUMERIC NOT NULL DEFAULT 0, archived_at TEXT NULL, UNIQUE (tenant_id, guesty_id))");
         $this->database = new Database($this->settings(), $pdo);
     }

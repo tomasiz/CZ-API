@@ -27,10 +27,15 @@ final class GuestySyncTest extends AuthTestCase
         return self::ok(['access_token' => $value, 'expires_in' => 86400, 'token_type' => 'Bearer']);
     }
 
-    /** @return array<string, mixed> */
-    private static function owner(string $id, string $name, bool $active = true, int $commission = 20, string $type = 'INDIVIDUAL'): array
+    /**
+     * @param list<array{string, bool}> $listings logements embarqués dans le propriétaire : [id, actif]
+     * @return array<string, mixed>
+     */
+    private static function owner(string $id, string $name, bool $active = true, int $commission = 20, string $type = 'INDIVIDUAL', array $listings = []): array
     {
         return [
+            // Logements embarqués dans le propriétaire par Guesty : [id, actif].
+            'listings' => array_map(static fn(array $l): array => ['_id' => $l[0], 'active' => $l[1]], $listings),
             '_id' => $id,
             'fullName' => $name,
             'email' => strtolower($id) . '@example.test',
@@ -186,16 +191,48 @@ final class GuestySyncTest extends AuthTestCase
     {
         $this->connect();
         $this->queue(
-            [self::ok(self::page([self::owner('O1', 'Alice', active: false)], 1))],
-            [self::ok(self::page([self::listing('L1', 'Villa', 'O1', active: false), self::listing('L2', 'Loft', 'O1')], 2))],
+            [self::ok(self::page([self::owner('O1', 'Alice', active: false, listings: [['L1', false]])], 1))],
+            [self::ok(self::page([self::listing('L1', 'Villa', 'O1', active: false)], 1))],
         );
         $this->sync();
 
         // Le logement d'un propriétaire désactivé (archivé avec lui) ne doit pas faire paraître sa ligne vide.
         $owners = $this->listOf('/owners');
         self::assertFalse($owners[0]['active']);
-        self::assertSame(['Villa', 'Loft'], array_column($owners[0]['properties'], 'name'));
-        self::assertSame([false, true], array_column($owners[0]['properties'], 'active'));
+        self::assertFalse($owners[0]['guestyActive']);
+        self::assertSame(['Villa'], array_column($owners[0]['properties'], 'name'));
+        self::assertSame([false], array_column($owners[0]['properties'], 'active'));
+    }
+
+    public function testAnOwnerInactiveInGuestyKeepsWorkingWhileOneOfHisListingsIsActive(): void
+    {
+        $this->connect();
+        $this->queue(
+            [self::ok(self::page([
+                self::owner('O1', 'Alice', active: false, listings: [['L1', false], ['L2', true]]),
+                self::owner('O2', 'Bob', active: false, listings: [['L3', false]]),
+                self::owner('O3', 'Carol', active: false),
+                self::owner('O4', 'Dave', listings: [['L4', false]]),
+            ], 4))],
+            [self::ok(self::page([self::listing('L1', 'Villa', 'O1', active: false), self::listing('L2', 'Loft', 'O1'), self::listing('L3', 'Cave', 'O2', active: false), self::listing('L4', 'Hangar', 'O4', active: false)], 4))],
+        );
+
+        $report = $this->report($this->sync());
+
+        // Alice (inactive mais un logement actif) et Dave (actif) restent actifs ; Bob et Carol, sans logement actif, sont archivés.
+        self::assertSame(['created' => 2, 'updated' => 0, 'archived' => 2, 'unchanged' => 0], $report['owners']);
+        $owners = $this->listOf('/owners');
+        self::assertSame(['Alice', 'Bob', 'Carol', 'Dave'], array_column($owners, 'name'));
+        self::assertSame([true, false, false, true], array_column($owners, 'active'));
+        self::assertSame([false, false, false, true], array_column($owners, 'guestyActive'));
+
+        // Rétablie dans Guesty comme sans logement actif : Alice est archivée à la synchro suivante, puis rétablie si un logement revient.
+        $this->queue(
+            [self::ok(self::page([self::owner('O1', 'Alice', active: false, listings: [['L1', false], ['L2', false]])], 1))],
+            [self::ok(self::page([self::listing('L1', 'Villa', 'O1', active: false), self::listing('L2', 'Loft', 'O1', active: false)], 2))],
+        );
+        $this->sync();
+        self::assertNotNull($this->owners->byGuestyId('tenant-a', 'O1')?->archivedAt);
     }
 
     public function testThePrefixGuestyAddsToOwnerNamesIsDropped(): void
