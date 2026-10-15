@@ -17,11 +17,12 @@ interface ReservationRepositoryInterface
     public function checkingOutBetween(DateTimeImmutable $from, DateTimeImmutable $to): array;
 
     /**
-     * Toutes les réservations dont le check-out est postérieur ou égal à `$from`, archivées comprises (pour la synchronisation).
+     * Toutes les réservations dont le check-out est postérieur ou égal à `$from` (et antérieur à `$before` s'il est donné),
+     * archivées comprises (pour la synchronisation).
      *
      * @return list<Reservation>
      */
-    public function allCheckingOutSince(DateTimeImmutable $from): array;
+    public function allCheckingOutSince(DateTimeImmutable $from, ?DateTimeImmutable $before = null): array;
 
     /**
      * Recherche paginée, filtrée et triée côté base. Le texte libre porte sur tout élément de la réservation : voyageur,

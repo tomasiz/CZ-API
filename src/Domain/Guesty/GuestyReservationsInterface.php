@@ -10,10 +10,11 @@ use DateTimeImmutable;
 interface GuestyReservationsInterface
 {
     /**
-     * Réservations `confirmed` dont le check-out est postérieur ou égal à `$from` (sans borne haute : tous les mois à venir).
+     * Réservations `confirmed` dont le check-out est postérieur ou égal à `$from` et antérieur à `$before` (sans borne haute si
+     * `$before` est nul : tous les mois à venir).
      *
      * @return list<GuestyReservation>
      * @throws \Casamiza\Shared\Exception\ApiException Guesty injoignable, identifiants refusés, limite atteinte…
      */
-    public function reservations(DateTimeImmutable $from): array;
+    public function reservations(DateTimeImmutable $from, ?DateTimeImmutable $before = null): array;
 }

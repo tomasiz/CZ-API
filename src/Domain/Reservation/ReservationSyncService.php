@@ -19,7 +19,8 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * Importe les réservations confirmées de Guesty dont le check-out est postérieur ou égal à `$from` (sans borne haute :
- * tous les mois à venir). Les logements doivent déjà avoir été synchronisés.
+ * tous les mois à venir, sauf si `$before` borne la fenêtre, par exemple à un mois). Les logements doivent déjà avoir été
+ * synchronisés.
  *
  * - Guesty est lu en entier **avant** la première écriture : une lecture incomplète n'archive rien.
  * - Une réservation de la fenêtre qui n'est plus renvoyée (annulée, plus confirmée) est archivée, jamais supprimée ;
@@ -51,16 +52,16 @@ final readonly class ReservationSyncService
      * @throws NotFoundException `integration_not_configured`
      * @throws \Casamiza\Shared\Exception\ApiException l'accès à Guesty a échoué (voir CheckFailure)
      */
-    public function sync(DateTimeImmutable $from): ReservationSyncReport
+    public function sync(DateTimeImmutable $from, ?DateTimeImmutable $before = null): ReservationSyncReport
     {
         if ($this->integrations->find(Provider::Guesty) === null) {
             throw new NotFoundException('integration_not_configured');
         }
 
-        $guestyReservations = $this->guesty->reservations($from);
+        $guestyReservations = $this->guesty->reservations($from, $before);
         $now = $this->clock->now();
 
-        return $this->transaction->run(function () use ($guestyReservations, $from, $now): ReservationSyncReport {
+        return $this->transaction->run(function () use ($guestyReservations, $from, $before, $now): ReservationSyncReport {
             // Même verrou que la synchronisation des propriétaires et logements : deux synchronisations ne se chevauchent pas.
             $this->integrations->find(Provider::Guesty, true);
 
@@ -69,7 +70,7 @@ final readonly class ReservationSyncService
                 $properties[$property->guestyId] = $property;
             }
             $existing = [];
-            foreach ($this->reservations->allCheckingOutSince($from) as $reservation) {
+            foreach ($this->reservations->allCheckingOutSince($from, $before) as $reservation) {
                 $existing[$reservation->guestyId] = $reservation;
             }
 
@@ -134,7 +135,7 @@ final readonly class ReservationSyncService
                 }
             }
 
-            return new ReservationSyncReport(new SyncCounts($created, $updated, $archived, $unchanged), $skipped, $stripeLookups, $from, $now);
+            return new ReservationSyncReport(new SyncCounts($created, $updated, $archived, $unchanged), $skipped, $stripeLookups, $from, $now, $before);
         });
     }
 }

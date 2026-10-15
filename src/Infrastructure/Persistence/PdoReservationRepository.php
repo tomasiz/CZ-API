@@ -37,14 +37,18 @@ final class PdoReservationRepository extends BaseRepository implements Reservati
         return array_map(fn(array $row): Reservation => $this->hydrate($row, $flags[(string) $row['id']] ?? []), $rows);
     }
 
-    public function allCheckingOutSince(DateTimeImmutable $from): array
+    public function allCheckingOutSince(DateTimeImmutable $from, ?DateTimeImmutable $before = null): array
     {
+        $params = ['from' => DbDate::toDb($from)];
+        if ($before !== null) {
+            $params['before'] = DbDate::toDb($before);
+        }
         $rows = $this->select(
-            where: 'check_out >= :from',
-            params: ['from' => DbDate::toDb($from)],
+            where: 'check_out >= :from' . ($before === null ? '' : ' AND check_out < :before'),
+            params: $params,
             suffix: 'ORDER BY check_out, id',
         );
-        $flags = $this->flagsCheckingOut($from, null);
+        $flags = $this->flagsCheckingOut($from, $before);
 
         return array_map(fn(array $row): Reservation => $this->hydrate($row, $flags[(string) $row['id']] ?? []), $rows);
     }

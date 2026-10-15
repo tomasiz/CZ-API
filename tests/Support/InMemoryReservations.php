@@ -99,9 +99,9 @@ final class InMemoryReservations implements ReservationRepositoryInterface
         return $this->sorted(fn(Reservation $r): bool => !$r->isArchived() && $r->checkOut >= $from && $r->checkOut < $to);
     }
 
-    public function allCheckingOutSince(DateTimeImmutable $from): array
+    public function allCheckingOutSince(DateTimeImmutable $from, ?DateTimeImmutable $before = null): array
     {
-        return $this->sorted(static fn(Reservation $r): bool => $r->checkOut >= $from);
+        return $this->sorted(static fn(Reservation $r): bool => $r->checkOut >= $from && ($before === null || $r->checkOut < $before));
     }
 
     public function findByGuestyId(string $guestyId): ?Reservation

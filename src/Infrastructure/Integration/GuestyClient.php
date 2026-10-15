@@ -134,12 +134,16 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
         return $listings;
     }
 
-    public function reservations(\DateTimeImmutable $from): array
+    public function reservations(\DateTimeImmutable $from, ?\DateTimeImmutable $before = null): array
     {
-        $filters = json_encode([
+        $conditions = [
             ['field' => 'status', 'operator' => '$eq', 'value' => 'confirmed'],
             ['field' => 'checkOut', 'operator' => '$gte', 'value' => $from->format('Y-m-d')],
-        ], JSON_THROW_ON_ERROR);
+        ];
+        if ($before !== null) {
+            $conditions[] = ['field' => 'checkOut', 'operator' => '$lt', 'value' => $before->format('Y-m-d')];
+        }
+        $filters = json_encode($conditions, JSON_THROW_ON_ERROR);
         // Sous-champs de `money` listés un à un : demander `money` en entier renvoie des centaines de lignes de détail.
         $rows = $this->fetchAll($this->session(), '/v1/reservations', [
             'filters' => $filters,

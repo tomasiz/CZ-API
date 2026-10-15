@@ -6,6 +6,7 @@ namespace Casamiza\Http\Resource;
 
 use Casamiza\Domain\Guesty\SyncCounts;
 use Casamiza\Domain\Guesty\SyncReport;
+use Casamiza\Domain\Reservation\ReservationSyncReport;
 use DateTimeInterface;
 
 /** Représentation JSON du bilan d'une synchronisation. */
@@ -17,6 +18,16 @@ final class SyncReportResource
         return [
             'owners' => self::counts($report->owners),
             'properties' => self::counts($report->properties),
+            'syncedAt' => $report->syncedAt->format(DateTimeInterface::ATOM),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public static function reservations(ReservationSyncReport $report): array
+    {
+        return [
+            'reservations' => self::counts($report->reservations),
+            'skipped' => $report->skipped,
             'syncedAt' => $report->syncedAt->format(DateTimeInterface::ATOM),
         ];
     }

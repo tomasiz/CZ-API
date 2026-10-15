@@ -17,5 +17,7 @@ final readonly class ReservationSyncReport
         public int $stripeLookups,
         public DateTimeImmutable $from,
         public DateTimeImmutable $syncedAt,
+        /** Borne haute (exclue) de la fenêtre ; nulle = tous les mois à venir. */
+        public ?DateTimeImmutable $before = null,
     ) {}
 }

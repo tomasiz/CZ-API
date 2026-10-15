@@ -140,6 +140,48 @@ final class ReservationSyncTest extends AuthTestCase
         self::assertSame('100', $query['limit'] ?? null);
     }
 
+    public function testTheRouteResyncsOnlyTheReservationsCheckingOutInTheGivenMonth(): void
+    {
+        $this->connect('alice@a.test', 'tenant-a');
+        // Septembre et octobre importés ; seule la fenêtre d'octobre sera relue.
+        $this->syncWith([
+            self::reservation('SEP', checkOut: '2026-09-20T08:00:00.000Z'),
+            self::reservation('OCT', checkOut: '2026-10-04T08:00:00.000Z'),
+            self::reservation('OCT-GONE', checkOut: '2026-10-09T08:00:00.000Z'),
+        ], '2026-09-01');
+        $before = count($this->thirdPartyCalls);
+
+        // Guesty ne renvoie plus que OCT (modifiée) : OCT-GONE est archivée, SEP (hors fenêtre) reste intacte.
+        $this->thirdParty->append(self::ok(['_id' => 'acc-1']), self::page([self::reservation('OCT', overrides: ['guestsCount' => 5])]));
+        // Un gestionnaire peut la lancer, comme la synchronisation des propriétaires et logements.
+        $response = $this->request($this->app, 'POST', '/api/v1/sync/reservations', $this->bearer($this->accessToken('marc@a.test')), ['month' => '2026-10']);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+        $data = $this->json($response)['data'];
+        self::assertIsArray($data);
+        self::assertSame(['created' => 0, 'updated' => 1, 'archived' => 1, 'unchanged' => 0], $data['reservations']);
+        self::assertSame(5, $this->reservations->byGuestyId('tenant-a', 'OCT')?->guests);
+        self::assertTrue($this->reservations->byGuestyId('tenant-a', 'OCT-GONE')?->isArchived());
+        self::assertFalse($this->reservations->byGuestyId('tenant-a', 'SEP')?->isArchived());
+
+        $calls = array_slice($this->thirdPartyCalls->getArrayCopy(), $before);
+        parse_str($calls[count($calls) - 1]['request']->getUri()->getQuery(), $query);
+        self::assertSame('[{"field":"status","operator":"$eq","value":"confirmed"},{"field":"checkOut","operator":"$gte","value":"2026-10-01"},{"field":"checkOut","operator":"$lt","value":"2026-11-01"}]', $query['filters'] ?? null);
+    }
+
+    public function testTheRouteValidatesTheMonthAndNeedsAnAccount(): void
+    {
+        $this->connect('alice@a.test', 'tenant-a');
+        $token = $this->bearer($this->accessToken('marc@a.test'));
+
+        foreach ([[], ['month' => '2026-13'], ['month' => '2024-12'], ['month' => '2026-10', 'since' => 'x']] as $body) {
+            $response = $this->request($this->app, 'POST', '/api/v1/sync/reservations', $token, $body);
+            self::assertSame(422, $response->getStatusCode(), (string) $response->getBody());
+            self::assertSame('validation_failed', $this->errorCode($response));
+        }
+        self::assertSame(401, $this->request($this->app, 'POST', '/api/v1/sync/reservations', [], ['month' => '2026-10'])->getStatusCode());
+    }
+
     public function testASecondRunUpdatesArchivesAndRestores(): void
     {
         $this->connect('alice@a.test', 'tenant-a');

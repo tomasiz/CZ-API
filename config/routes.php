@@ -54,6 +54,8 @@ return static function (App $app): void {
             $api->get('/owners', [OwnerController::class, 'index']);
             $api->get('/properties', [PropertyController::class, 'index']);
             $api->post('/sync/guesty', [SyncController::class, 'guesty']);
+            // Réservations d'un mois (check-out), réimportées de Guesty : tous les membres.
+            $api->post('/sync/reservations', [SyncController::class, 'reservations']);
 
             // Réservations (importées de Guesty, montants calculés) : tous les membres ; recherche, filtres et pagination côté API.
             $api->get('/reservations', [ReservationController::class, 'index']);
