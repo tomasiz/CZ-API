@@ -19,20 +19,25 @@ final class FakeDocumentRenderer implements DocumentRendererInterface
     /** @var list<RecapDocument> */
     public array $recaps = [];
 
+    /** @var list<bool> pour chaque PDF fabriqué (facture ou récapitulatif), s'il portait le filigrane */
+    public array $specimens = [];
+
     public bool $failing = false;
 
-    public function invoice(DocumentCompany $company, InvoiceDocument $document): string
+    public function invoice(DocumentCompany $company, InvoiceDocument $document, bool $specimen = false): string
     {
         $this->check();
         $this->invoices[] = $document;
+        $this->specimens[] = $specimen;
 
         return '%PDF-fake invoice ' . $document->number;
     }
 
-    public function recap(DocumentCompany $company, RecapDocument $document): string
+    public function recap(DocumentCompany $company, RecapDocument $document, bool $specimen = false): string
     {
         $this->check();
         $this->recaps[] = $document;
+        $this->specimens[] = $specimen;
 
         return '%PDF-fake recap';
     }

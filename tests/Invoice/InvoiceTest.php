@@ -330,6 +330,104 @@ final class InvoiceTest extends AuthTestCase
         self::assertCount(2, $this->renderer->recaps[0]->cards);
     }
 
+    public function testThePreviewIsASpecimenOfTheInvoiceThatWouldBeIssuedAndStoresNothing(): void
+    {
+        $response = $this->call('POST', '/invoices/preview', ['ownerId' => 'owner-1', 'month' => '2026-09', 'note' => 'Merci']);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame('application/pdf', $response->getHeaderLine('Content-Type'));
+        self::assertSame('private, no-store', $response->getHeaderLine('Cache-Control'));
+        self::assertSame('%PDF-fake invoice XXXXXXX', (string) $response->getBody());
+        self::assertSame([true], $this->renderer->specimens);
+        $preview = $this->renderer->invoices[0];
+        self::assertSame('Merci', $preview->note);
+        self::assertSame([250.48, 50.1, 300.58], [$preview->totalHt, $preview->totalVat, $preview->totalTtc]);
+
+        // Ni facture, ni fichier, ni numéro consommé : la première vraie facture porte le numéro 1, avec les mêmes montants.
+        self::assertSame([], $this->invoices->rows);
+        self::assertSame([], $this->invoiceFiles->files);
+        $invoice = $this->issue();
+        self::assertSame([1, 300.58], [$invoice['number'], $invoice['amountTtc']]);
+        self::assertSame([true, false, false], $this->renderer->specimens, 'Seul l’aperçu porte le filigrane.');
+    }
+
+    public function testThePreviewIsRefusedLikeTheIssueAndForManagers(): void
+    {
+        $refusals = [
+            [['ownerId' => 'nope', 'month' => '2026-09'], 404, 'owner_not_found'],
+            [['ownerId' => 'owner-b', 'month' => '2026-09'], 404, 'owner_not_found'],
+            [['ownerId' => 'owner-1', 'month' => '2026-10'], 422, 'month_not_billable'],
+            [['ownerId' => 'owner-2', 'month' => '2026-08'], 422, 'nothing_to_bill'],
+        ];
+        foreach ($refusals as [$body, $status, $code]) {
+            $response = $this->call('POST', '/invoices/preview', $body);
+            self::assertSame($status, $response->getStatusCode(), $code);
+            self::assertSame($code, $this->errorCode($response));
+        }
+        self::assertSame('validation_failed', $this->errorCode($this->call('POST', '/invoices/preview', ['month' => '2026-09'])));
+        self::assertSame(403, $this->call('POST', '/invoices/preview', ['ownerId' => 'owner-1', 'month' => '2026-09'], 'marc@a.test')->getStatusCode());
+
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $this->statements->save(new Statement('statement-1', 'owner-2', '2026-09', true));
+        $this->context->reset();
+        self::assertSame('month_marked_nothing_to_invoice', $this->errorCode($this->call('POST', '/invoices/preview', ['ownerId' => 'owner-2', 'month' => '2026-09'])));
+
+        $this->issue();
+        $invoiced = $this->call('POST', '/invoices/preview', ['ownerId' => 'owner-1', 'month' => '2026-09']);
+        self::assertSame(409, $invoiced->getStatusCode());
+        self::assertSame('month_already_invoiced', $this->errorCode($invoiced));
+        self::assertSame([false, false], $this->renderer->specimens, 'Seuls les deux PDF de l’émission ont été fabriqués : aucun aperçu sur un refus.');
+    }
+
+    public function testTheRecapOfAnUninvoicedMonthIsARealPdfComputedOnDemandAndNotStored(): void
+    {
+        $response = $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-09']);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame('application/pdf', $response->getHeaderLine('Content-Type'));
+        self::assertSame('%PDF-fake recap', (string) $response->getBody());
+        self::assertSame([false], $this->renderer->specimens);
+        self::assertCount(2, $this->renderer->recaps[0]->cards);
+        self::assertSame('Alice Martin', $this->renderer->recaps[0]->recipient->name);
+        self::assertSame([], $this->invoices->rows);
+        self::assertSame([], $this->invoiceFiles->files);
+
+        // Plus de brouillon une fois la facture émise : son récapitulatif est celui de la facture.
+        $this->issue();
+        $invoiced = $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-09']);
+        self::assertSame(409, $invoiced->getStatusCode());
+        self::assertSame('month_already_invoiced', $this->errorCode($invoiced));
+    }
+
+    public function testTheRecapDraftIsAvailableForTheCurrentMonthToo(): void
+    {
+        // Octobre 2026 est le mois en cours (la facture n'y est pas permise) : son récapitulatif, si, avec le séjour déjà importé.
+        $response = $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-10']);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+        self::assertCount(1, $this->renderer->recaps[0]->cards);
+        self::assertSame('month_not_billable', $this->errorCode($this->call('POST', '/invoices/preview', ['ownerId' => 'owner-1', 'month' => '2026-10'])));
+    }
+
+    public function testTheRecapDraftIsRefusedWithoutStayForeignOwnersAndManagers(): void
+    {
+        $empty = $this->call('POST', '/owners/owner-2/recap', ['month' => '2026-08']);
+        self::assertSame(422, $empty->getStatusCode());
+        self::assertSame('nothing_to_bill', $this->errorCode($empty));
+
+        foreach (['2024-12', 'sept-26'] as $month) {
+            self::assertSame('month_not_billable', $this->errorCode($this->call('POST', '/owners/owner-1/recap', ['month' => $month])));
+        }
+        self::assertSame('nothing_to_bill', $this->errorCode($this->call('POST', '/owners/owner-1/recap', ['month' => '2026-11'])));
+        foreach (['nope', 'owner-b'] as $ownerId) {
+            self::assertSame('owner_not_found', $this->errorCode($this->call('POST', '/owners/' . $ownerId . '/recap', ['month' => '2026-09'])));
+        }
+        self::assertSame('validation_failed', $this->errorCode($this->call('POST', '/owners/owner-1/recap', [])));
+        self::assertSame(403, $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-09'], 'marc@a.test')->getStatusCode());
+        self::assertSame([], $this->renderer->recaps);
+    }
+
     public function testTheListNamesTheOwnerAndTheBilledPropertiesAndCanBeFiltered(): void
     {
         $this->issue();

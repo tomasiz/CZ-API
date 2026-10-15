@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Casamiza\Domain\Invoice;
 
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
+use Casamiza\Domain\Owner\Owner;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Domain\Reservation\Platform;
@@ -32,6 +33,8 @@ use Throwable;
 final readonly class InvoiceService
 {
     private const BILLING_TIMEZONE = 'Europe/Paris';
+    /** Numéro imprimé sur un aperçu (comme le « specimen » de Facturiza). */
+    private const SPECIMEN_NUMBER = 'XXXXXXX';
 
     public function __construct(
         private InvoiceRepositoryInterface $invoices,
@@ -59,43 +62,17 @@ final readonly class InvoiceService
     public function create(string $ownerId, string $month, ?string $note): Invoice
     {
         $now = $this->clock->now();
-        if (!in_array($month, BillingMonth::until($now), true)) {
-            throw new UnprocessableException('month_not_billable');
-        }
-        $owner = $this->owners->find($ownerId) ?? throw new NotFoundException('owner_not_found');
+        $owner = $this->billableOwner($ownerId, $month, $now);
 
         $invoice = $this->transaction->run(function () use ($owner, $month, $note, $now): Invoice {
             // Le numéro d'abord : il verrouille la séquence du tenant, donc deux créations simultanées passent l'une après l'autre.
             $number = $this->invoices->nextNumber();
-            if ($this->invoices->hasActive($owner->id, $month)) {
-                throw new ConflictException('month_already_invoiced');
-            }
-            if ($this->statements->find($owner->id, $month)?->nothingToInvoice === true) {
-                throw new ConflictException('month_marked_nothing_to_invoice');
-            }
+            $this->assertNotInvoiced($owner, $month);
 
-            $billings = $this->billings($owner->id, $month);
-            $draft = $this->calculator->build($billings, $this->extras->forOwnerMonth($owner->id, $month));
+            [$invoice, $draft, $billings] = $this->compose($owner, $month, $note, $number, $now);
             if ($draft->lines === []) {
                 throw new UnprocessableException('nothing_to_bill');
             }
-
-            $first = new DateTimeImmutable($month . '-01', new DateTimeZone('UTC'));
-            $today = $this->today($now);
-            $invoice = new Invoice(
-                id: Uuid::uuid7()->toString(),
-                number: $number,
-                ownerId: $owner->id,
-                month: $month,
-                periodStart: $first,
-                periodEnd: $first->modify('last day of this month'),
-                invoiceDate: $today,
-                dueDate: $today->modify('+1 month'),
-                amountHt: $draft->totals->ht,
-                vat: $draft->totals->vat,
-                amountTtc: $draft->totals->ttc,
-                note: $note === null || trim($note) === '' ? null : trim($note),
-            );
             $invoice = $invoice->withSnapshot($this->snapshots->build($invoice, $owner, $billings, $draft));
             $this->invoices->add($invoice, $draft->lines, $draft->reservations);
 
@@ -111,6 +88,57 @@ final readonly class InvoiceService
 
             return $invoice;
         }
+    }
+
+    /**
+     * Aperçu de la facture que `create` émettrait **maintenant** : même calcul, mêmes refus, PDF « specimen » (filigrane, numéro
+     * `XXXXXXX`). Rien n'est enregistré : ni facture, ni numéro, ni fichier.
+     *
+     * @throws NotFoundException `owner_not_found`
+     * @throws UnprocessableException `month_not_billable`, `nothing_to_bill`
+     * @throws ConflictException `month_already_invoiced`, `month_marked_nothing_to_invoice`
+     */
+    public function preview(string $ownerId, string $month, ?string $note): string
+    {
+        $now = $this->clock->now();
+        $owner = $this->billableOwner($ownerId, $month, $now);
+        $this->assertNotInvoiced($owner, $month);
+
+        [$invoice, $draft, $billings] = $this->compose($owner, $month, $note, 0, $now);
+        if ($draft->lines === []) {
+            throw new UnprocessableException('nothing_to_bill');
+        }
+        $snapshot = $this->snapshots->build($invoice, $owner, $billings, $draft);
+        $snapshot['facture_information']['numero_facture'] = self::SPECIMEN_NUMBER;
+
+        return $this->documents->previewInvoice($snapshot, $invoice->dueDate);
+    }
+
+    /**
+     * Récapitulatif propriétaire d'un mois **pas encore facturé** : un vrai PDF (sans filigrane), calculé sur les réservations
+     * d'aujourd'hui et non conservé ; la facture émise fabriquera le sien, figé. Contrairement à la facture, il se génère pour
+     * **n'importe quel mois** (en cours ou à venir compris : les réservations futures sont déjà importées).
+     *
+     * @throws NotFoundException `owner_not_found`
+     * @throws UnprocessableException `month_not_billable` (mois invalide ou antérieur à janvier 2025), `nothing_to_bill` (aucune réservation ce mois-là)
+     * @throws ConflictException `month_already_invoiced`, `month_marked_nothing_to_invoice`
+     */
+    public function draftRecap(string $ownerId, string $month): string
+    {
+        if (!BillingMonth::isValid($month)) {
+            throw new UnprocessableException('month_not_billable');
+        }
+        $now = $this->clock->now();
+        $owner = $this->owners->find($ownerId) ?? throw new NotFoundException('owner_not_found');
+        $this->assertNotInvoiced($owner, $month);
+
+        [$invoice, $draft, $billings] = $this->compose($owner, $month, null, 0, $now);
+        $snapshot = $this->snapshots->build($invoice, $owner, $billings, $draft);
+        if ($snapshot['facturation_par_listing'] === []) {
+            throw new UnprocessableException('nothing_to_bill');
+        }
+
+        return $this->documents->draftRecap($snapshot);
     }
 
     /**
@@ -212,6 +240,65 @@ final readonly class InvoiceService
         $this->invoices->updatePayment($updated);
 
         return $updated;
+    }
+
+    /**
+     * Le propriétaire d'un mois facturable (terminé, à partir de janvier 2025).
+     *
+     * @throws NotFoundException `owner_not_found`
+     * @throws UnprocessableException `month_not_billable`
+     */
+    private function billableOwner(string $ownerId, string $month, DateTimeImmutable $now): Owner
+    {
+        if (!in_array($month, BillingMonth::until($now), true)) {
+            throw new UnprocessableException('month_not_billable');
+        }
+
+        return $this->owners->find($ownerId) ?? throw new NotFoundException('owner_not_found');
+    }
+
+    /**
+     * @throws ConflictException `month_already_invoiced`, `month_marked_nothing_to_invoice`
+     */
+    private function assertNotInvoiced(Owner $owner, string $month): void
+    {
+        if ($this->invoices->hasActive($owner->id, $month)) {
+            throw new ConflictException('month_already_invoiced');
+        }
+        if ($this->statements->find($owner->id, $month)?->nothingToInvoice === true) {
+            throw new ConflictException('month_marked_nothing_to_invoice');
+        }
+    }
+
+    /**
+     * Calcule la facture du mois depuis la base, sans rien écrire : l'en-tête (sans instantané), le brouillon calculé et les
+     * réservations facturées par logement. Date de facture = aujourd'hui à Paris, échéance un mois plus tard.
+     *
+     * @return array{Invoice, InvoiceDraft, list<PropertyBilling>}
+     */
+    private function compose(Owner $owner, string $month, ?string $note, int $number, DateTimeImmutable $now): array
+    {
+        $billings = $this->billings($owner->id, $month);
+        $draft = $this->calculator->build($billings, $this->extras->forOwnerMonth($owner->id, $month));
+
+        $first = new DateTimeImmutable($month . '-01', new DateTimeZone('UTC'));
+        $today = $this->today($now);
+        $invoice = new Invoice(
+            id: Uuid::uuid7()->toString(),
+            number: $number,
+            ownerId: $owner->id,
+            month: $month,
+            periodStart: $first,
+            periodEnd: $first->modify('last day of this month'),
+            invoiceDate: $today,
+            dueDate: $today->modify('+1 month'),
+            amountHt: $draft->totals->ht,
+            vat: $draft->totals->vat,
+            amountTtc: $draft->totals->ttc,
+            note: $note === null || trim($note) === '' ? null : trim($note),
+        );
+
+        return [$invoice, $draft, $billings];
     }
 
     /** Le jour d'aujourd'hui à Paris, à minuit UTC (les dates de facture sont des jours, sans heure). */

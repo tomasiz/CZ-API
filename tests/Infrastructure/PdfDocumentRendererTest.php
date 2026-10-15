@@ -28,7 +28,10 @@ final class PdfDocumentRendererTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
 
-        return new PdfDocumentRenderer(new PdfFontDirectory($root . '/resources/pdf/fonts', sys_get_temp_dir() . '/casamiza-tests-' . get_current_user()));
+        return new PdfDocumentRenderer(
+            new PdfFontDirectory($root . '/resources/pdf/fonts', sys_get_temp_dir() . '/casamiza-tests-' . get_current_user()),
+            $root . '/resources/pdf/images/specimen.png',
+        );
     }
 
     private static function company(?string $logo = null): DocumentCompany
@@ -86,6 +89,25 @@ final class PdfDocumentRendererTest extends TestCase
         }
         $recap = new RecapDocument(self::day('2026-08-01'), self::day('2026-08-31'), new DocumentRecipient('Julien Djadjoua', '', '', 'Porticcio'), $cards);
         self::assertGreaterThanOrEqual(3, self::pageCount(self::renderer()->recap(self::company(), $recap)));
+    }
+
+    public function testASpecimenCarriesTheWatermarkOnEveryPage(): void
+    {
+        $rows = [];
+        for ($i = 1; $i <= 60; ++$i) {
+            $rows[] = new InvoiceItemRow(sprintf('Du %02d/08/2026 au %02d/08/2026', $i % 28 + 1, $i % 28 + 2), 1, 10.0, 20.0, 12.0, 12.0);
+        }
+        $document = new InvoiceDocument('XXXXXXX', self::day('2026-09-08'), self::day('2026-10-08'), self::day('2026-08-01'), self::day('2026-08-31'), '', new DocumentRecipient('Julien Djadjoua', '', '', 'Porticcio'), [new InvoiceSection('Frais de conciergerie', $rows)], [new VatBreakdown('Normale', 600.0, 20.0, 120.0)], 600.0, 120.0, 720.0);
+
+        $plain = self::renderer()->invoice(self::company(), $document);
+        $specimen = self::renderer()->invoice(self::company(), $document, true);
+
+        $pages = self::pageCount($specimen);
+        self::assertSame(self::pageCount($plain), $pages);
+        // Sans filigrane, aucune image dans le fichier ; avec, l'image est embarquée (le rendu page par page se vérifie à l'œil).
+        self::assertSame(0, preg_match_all('~/Subtype /Image~', $plain));
+        self::assertGreaterThanOrEqual(1, preg_match_all('~/Subtype /Image~', $specimen));
+        self::assertStringStartsWith('%PDF-', self::renderer()->recap(self::company(), new RecapDocument(self::day('2026-08-01'), self::day('2026-08-31'), new DocumentRecipient('Julien Djadjoua', '', '', ''), []), true));
     }
 
     public function testARecapWithoutStayAndACompanyWithoutLogoStillRender(): void

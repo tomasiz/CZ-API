@@ -61,6 +61,34 @@ final readonly class InvoiceController
         return $this->json->data($response, InvoiceResource::toArray($invoice, $this->clock->now()), 201);
     }
 
+    /** Mêmes champs que `create`. Renvoie le PDF « specimen » de la facture qui serait émise ; rien n'est enregistré. */
+    public function preview(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $input = Input::fromBody($request->getParsedBody());
+        $input->allowOnly('ownerId', 'month', 'note');
+        $ownerId = $input->string('ownerId', 64);
+        $month = $input->string('month', 7);
+        $note = $input->optionalString('note', 500);
+        $input->assertValid();
+
+        return $this->file($response, $this->invoices->preview($ownerId, $month, $note));
+    }
+
+    /**
+     * `month` (AAAA-MM, terminé et pas encore facturé). Renvoie le récapitulatif PDF du mois, calculé à l'instant et non conservé.
+     *
+     * @param array<string, string> $args
+     */
+    public function draftRecap(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $input = Input::fromBody($request->getParsedBody());
+        $input->allowOnly('month');
+        $month = $input->string('month', 7);
+        $input->assertValid();
+
+        return $this->file($response, $this->invoices->draftRecap($args['id'], $month));
+    }
+
     /**
      * `status` (`paid` | `unpaid`), `method` (`wire`, `check`, `cash`, `credit_card`, `other` : obligatoire si payée) et `date` (`AAAA-MM-JJ`, aujourd'hui par défaut).
      *

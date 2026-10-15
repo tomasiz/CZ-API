@@ -11,6 +11,7 @@ use Casamiza\Domain\Invoice\Document\DocumentCompany;
 use Casamiza\Domain\Invoice\Document\DocumentRendererInterface;
 use Casamiza\Domain\Invoice\Document\SnapshotDocumentFactory;
 use Casamiza\Shared\Exception\NotFoundException;
+use DateTimeImmutable;
 use RuntimeException;
 
 /**
@@ -41,7 +42,7 @@ final readonly class InvoiceDocumentService
             return $invoice;
         }
         $snapshot = $invoice->snapshot ?? throw new NotFoundException('snapshot_not_found');
-        $company = $this->documentCompany($this->company->find() ?? CompanySettings::blank());
+        $company = $this->currentCompany();
         $year = $invoice->invoiceDate->format('Y');
 
         if ($invoice->pdfPath === null) {
@@ -54,6 +55,32 @@ final readonly class InvoiceDocumentService
         }
 
         return $this->invoices->find($invoice->id) ?? $invoice;
+    }
+
+    /**
+     * Aperçu de la facture d'un instantané **non enregistré** (brouillon) : un PDF « specimen », rien n'est rangé ni rattaché.
+     *
+     * @param array<string, mixed> $snapshot
+     */
+    public function previewInvoice(array $snapshot, DateTimeImmutable $dueDate): string
+    {
+        return $this->renderer->invoice($this->currentCompany(), $this->documents->invoice($snapshot, $dueDate), true);
+    }
+
+    /**
+     * Récapitulatif d'un instantané **non enregistré** (mois pas encore facturé) : un vrai PDF, non conservé. Il ne vaut que pour
+     * le jour où il est demandé : l'émission de la facture fabriquera le récapitulatif définitif.
+     *
+     * @param array<string, mixed> $snapshot
+     */
+    public function draftRecap(array $snapshot): string
+    {
+        return $this->renderer->recap($this->currentCompany(), $this->documents->recap($snapshot));
+    }
+
+    private function currentCompany(): DocumentCompany
+    {
+        return $this->documentCompany($this->company->find() ?? CompanySettings::blank());
     }
 
     /** Range le fichier puis le rattache ; si une autre requête l'a fait entre-temps, le nôtre est supprimé. */

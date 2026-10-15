@@ -12,12 +12,13 @@ use Casamiza\Domain\Invoice\Document\RecapDocument;
 /** Fabrique les PDF avec la mise en page de Facturiza (`DocumentPdf`). */
 final readonly class PdfDocumentRenderer implements DocumentRendererInterface
 {
-    public function __construct(private PdfFontDirectory $fonts) {}
+    /** @param string $specimenFile image du filigrane des aperçus */
+    public function __construct(private PdfFontDirectory $fonts, private string $specimenFile) {}
 
-    public function invoice(DocumentCompany $company, InvoiceDocument $document): string
+    public function invoice(DocumentCompany $company, InvoiceDocument $document, bool $specimen = false): string
     {
         $pdf = new DocumentPdf($this->fonts->path());
-        $pdf->begin($company, true, $document->number);
+        $pdf->begin($company, true, $document->number, $specimen ? $this->specimenFile : null);
         $pdf->firstPageHeader($document->recipient, $document->periodStart, $document->periodEnd, $document->date, $document->note);
 
         foreach ($document->sections as $section) {
@@ -31,10 +32,10 @@ final readonly class PdfDocumentRenderer implements DocumentRendererInterface
         return $pdf->bytes();
     }
 
-    public function recap(DocumentCompany $company, RecapDocument $document): string
+    public function recap(DocumentCompany $company, RecapDocument $document, bool $specimen = false): string
     {
         $pdf = new DocumentPdf($this->fonts->path());
-        $pdf->begin($company, false);
+        $pdf->begin($company, false, '', $specimen ? $this->specimenFile : null);
         $pdf->firstPageHeader($document->recipient, $document->periodStart, $document->periodEnd, $document->periodEnd);
 
         $total = 0;

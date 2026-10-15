@@ -70,6 +70,7 @@ return static function (App $app): void {
             $api->group('/invoices', function (RouteCollectorProxy $invoices): void {
                 $invoices->get('', [InvoiceController::class, 'index']);
                 $invoices->post('', [InvoiceController::class, 'create']);
+                $invoices->post('/preview', [InvoiceController::class, 'preview']);
                 $invoices->patch('/{id}/payment', [InvoiceController::class, 'payment']);
                 $invoices->get('/{id}/pdf', [InvoiceController::class, 'pdf']);
                 $invoices->get('/{id}/recap-pdf', [InvoiceController::class, 'recapPdf']);
@@ -82,6 +83,8 @@ return static function (App $app): void {
             // Saisies locales du propriétaire (SIRET, raison sociale, clé Stripe en écriture seule) : administrateurs seulement.
             $api->group('/owners', function (RouteCollectorProxy $owners): void {
                 $owners->patch('/{id}', [OwnerController::class, 'update']);
+                // Récapitulatif d'un mois pas encore facturé (PDF calculé à la demande, non conservé).
+                $owners->post('/{id}/recap', [InvoiceController::class, 'draftRecap']);
                 $owners->delete('/{id}/stripe-key', [OwnerController::class, 'removeStripeKey']);
             })->add(new RoleMiddleware(Role::Admin));
 

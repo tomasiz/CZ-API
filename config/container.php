@@ -102,6 +102,7 @@ return [
     LogoStorageInterface::class => static fn(ContainerInterface $c): FileLogoStorage => new FileLogoStorage($c->get(Settings::class)->projectRoot . '/storage'),
     DocumentRendererInterface::class => static fn(ContainerInterface $c): PdfDocumentRenderer => new PdfDocumentRenderer(
         new PdfFontDirectory($c->get(Settings::class)->projectRoot . '/resources/pdf/fonts', $c->get(Settings::class)->projectRoot . '/storage/cache'),
+        $c->get(Settings::class)->projectRoot . '/resources/pdf/images/specimen.png',
     ),
     ClientInterface::class => static fn(): Client => new Client(),
     Encryptor::class => static fn(ContainerInterface $c): Encryptor => new Encryptor($c->get(Settings::class)->encryptionKey),

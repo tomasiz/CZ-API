@@ -43,6 +43,9 @@ final class DocumentPdf extends tFPDF
     private ?self $measurer = null;
     private ?string $logoFile = null;
 
+    /** Image du filigrane « specimen » (pleine page), posée sur les aperçus ; null = aucun. */
+    private ?string $specimenFile = null;
+
     public function __construct(private readonly string $fontDirectory)
     {
         parent::__construct('P', 'mm', 'A4');
@@ -56,9 +59,13 @@ final class DocumentPdf extends tFPDF
         }
     }
 
-    /** Ouvre le document : une facture (`$invoice`) ou un récapitulatif, émis par `$company`. */
-    public function begin(DocumentCompany $company, bool $invoice, string $number = ''): void
+    /**
+     * Ouvre le document : une facture (`$invoice`) ou un récapitulatif, émis par `$company`.
+     * `$specimenFile` (aperçu) : image posée sur chaque page, comme le filigrane de Facturiza.
+     */
+    public function begin(DocumentCompany $company, bool $invoice, string $number = '', ?string $specimenFile = null): void
     {
+        $this->specimenFile = $specimenFile;
         $this->company = $company;
         $this->invoice = $invoice;
         $this->number = $number;
@@ -93,6 +100,10 @@ final class DocumentPdf extends tFPDF
         $this->Cell(0, 3, 'Page ' . $this->PageNo() . '/{nb}', 0, 0, 'R');
         $this->Ln(4);
         $this->Cell(0, 3, 'IBAN : ' . $company->iban, 0, 0, 'L');
+
+        if ($this->specimenFile !== null) {
+            $this->Image($this->specimenFile, 0, 0, $this->GetPageWidth());
+        }
     }
 
     /**
