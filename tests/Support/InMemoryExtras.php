@@ -37,6 +37,20 @@ final class InMemoryExtras implements ExtraRepositoryInterface
         return $this->rows[$this->context->id() . '|' . $id] ?? null;
     }
 
+    /** @var array<string, array<int, true>> identifiants d'origine par tenant */
+    public array $legacy = [];
+
+    public function addLegacy(Extra $extra, int $legacyId): void
+    {
+        $this->add($extra);
+        $this->legacy[$this->context->id()][$legacyId] = true;
+    }
+
+    public function legacyIds(): array
+    {
+        return $this->legacy[$this->context->id()] ?? [];
+    }
+
     public function add(Extra $extra): void
     {
         $this->rows[$this->context->id() . '|' . $extra->id] = $extra;

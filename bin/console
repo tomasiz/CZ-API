@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Casamiza\Console\GuestySourcesCommand;
 use Casamiza\Console\ImportFacturizaDirectoryCommand;
+use Casamiza\Console\ImportFacturizaInvoicesCommand;
 use Casamiza\Console\ImportFacturizaOwnersCommand;
 use Casamiza\Console\SyncGuestyCommand;
 use Casamiza\Console\SyncReservationsCommand;
@@ -28,4 +29,5 @@ $application->addCommand($container->get(SyncReservationsCommand::class));
 $application->addCommand($container->get(GuestySourcesCommand::class));
 $application->addCommand($container->get(ImportFacturizaOwnersCommand::class));
 $application->addCommand($container->get(ImportFacturizaDirectoryCommand::class));
+$application->addCommand($container->get(ImportFacturizaInvoicesCommand::class));
 $application->run();

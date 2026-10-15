@@ -149,7 +149,7 @@ final class ExtraTest extends AuthTestCase
     public function testAnInvoicedMonthIsLocked(): void
     {
         $extra = $this->add();
-        $this->invoiced->invoice('owner-1', '2026-09');
+        $this->invoiced->invoice('tenant-a', 'owner-1', '2026-09');
 
         foreach ([
             $this->call('POST', '/owners/owner-1/extras', ['month' => '2026-09', 'type' => 'linen', 'description' => 'Draps', 'priceTtc' => 10]),

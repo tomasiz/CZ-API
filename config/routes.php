@@ -8,6 +8,7 @@ use Casamiza\Http\Controller\CompanyController;
 use Casamiza\Http\Controller\ExtraController;
 use Casamiza\Http\Controller\HealthController;
 use Casamiza\Http\Controller\IntegrationController;
+use Casamiza\Http\Controller\InvoiceController;
 use Casamiza\Http\Controller\MeController;
 use Casamiza\Http\Controller\OwnerController;
 use Casamiza\Http\Controller\PropertyController;
@@ -63,6 +64,14 @@ return static function (App $app): void {
             $api->delete('/owners/{ownerId}/extras/{id}', [ExtraController::class, 'remove']);
             $api->get('/statements', [StatementController::class, 'index']);
             $api->put('/owners/{id}/statements/{month}/nothing-to-invoice', [StatementController::class, 'nothingToInvoice']);
+
+            // Factures : administrateurs seulement (chiffres de l'entreprise).
+            $api->group('/invoices', function (RouteCollectorProxy $invoices): void {
+                $invoices->get('', [InvoiceController::class, 'index']);
+                $invoices->post('', [InvoiceController::class, 'create']);
+                $invoices->patch('/{id}/payment', [InvoiceController::class, 'payment']);
+                $invoices->get('/{id}/json', [InvoiceController::class, 'snapshot']);
+            })->add(new RoleMiddleware(Role::Admin));
 
             // Saisies locales du propriétaire (SIRET, raison sociale, clé Stripe en écriture seule) : administrateurs seulement.
             $api->group('/owners', function (RouteCollectorProxy $owners): void {

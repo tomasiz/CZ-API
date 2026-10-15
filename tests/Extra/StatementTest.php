@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Casamiza\Tests\Extra;
 
+use Casamiza\Domain\Invoice\Invoice;
+use Casamiza\Domain\Invoice\PaymentMethod;
+use Casamiza\Domain\Invoice\PaymentStatus;
 use Casamiza\Domain\Owner\Owner;
 use Casamiza\Domain\Owner\OwnerType;
 use Casamiza\Domain\Statement\BillingMonth;
+use Casamiza\Domain\Statement\Statement;
 use Casamiza\Tests\Auth\AuthTestCase;
 use DateTimeImmutable;
 use Psr\Http\Message\ResponseInterface;
@@ -103,12 +107,43 @@ final class StatementTest extends AuthTestCase
 
     public function testAnInvoicedMonthCannotBeToggled(): void
     {
-        $this->invoiced->invoice('owner-1', '2026-09');
+        $this->invoiced->invoice('tenant-a', 'owner-1', '2026-09');
 
         $response = $this->call('PUT', '/owners/owner-1/statements/2026-09/nothing-to-invoice', ['value' => true]);
 
         self::assertSame(409, $response->getStatusCode());
         self::assertSame('month_already_invoiced', $this->errorCode($response));
+    }
+
+    public function testInvoicesDecideTheStatusOfTheirMonth(): void
+    {
+        // Horloge au 7 octobre 2026.
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $invoice = fn(string $month, string $due, PaymentStatus $payment = PaymentStatus::Unpaid, ?DateTimeImmutable $cancelled = null) => $this->invoices->add(
+            new Invoice('inv-' . $month, $this->invoices->nextNumber(), 'owner-1', $month, new DateTimeImmutable($month . '-01 UTC'), new DateTimeImmutable($month . '-28 UTC'), new DateTimeImmutable($month . '-28 UTC'), new DateTimeImmutable($due . ' UTC'), 100.0, 20.0, 120.0, $payment, $payment === PaymentStatus::Paid ? PaymentMethod::Wire : null, null, $cancelled),
+            [],
+            [],
+        );
+        $invoice('2026-09', '2026-10-28');                                              // échéance à venir : facturée
+        $invoice('2026-08', '2026-10-07');                                              // échéance aujourd'hui : pas encore en retard
+        $invoice('2026-07', '2026-09-01');                                              // échéance dépassée : en retard
+        $invoice('2026-06', '2026-07-01', PaymentStatus::Paid);                         // payée, même après l'échéance
+        $invoice('2026-05', '2026-06-01', cancelled: new DateTimeImmutable('2026-06-02 UTC')); // annulée : redevient à facturer
+        $invoice('2026-04', '2026-05-01');                                              // en retard, et marquée « rien à facturer » : la facture l'emporte
+        $this->statements->save(new Statement('s-1', 'owner-1', '2026-04', true));
+        $this->statements->save(new Statement('s-2', 'owner-1', '2026-03', true));
+        $this->context->reset();
+
+        $statuses = array_column($this->rows('?ownerId=owner-1'), 'status', 'month');
+
+        self::assertEquals(
+            ['2026-09' => 'invoiced', '2026-08' => 'invoiced', '2026-07' => 'overdue', '2026-06' => 'paid', '2026-05' => 'to-invoice', '2026-04' => 'overdue', '2026-03' => 'nothing-to-invoice', '2026-02' => 'to-invoice'],
+            array_intersect_key($statuses, array_flip(['2026-09', '2026-08', '2026-07', '2026-06', '2026-05', '2026-04', '2026-03', '2026-02'])),
+        );
+        // Les factures d'un propriétaire ne déteignent pas sur un autre, ni sur un autre tenant.
+        self::assertSame('to-invoice', array_column($this->rows('?ownerId=owner-2&month=2026-09'), 'status', 'month')['2026-09']);
+        self::assertSame('to-invoice', $this->rows('?month=2026-09', 'bob@b.test')[0]['status']);
     }
 
     public function testInvalidRequestsAreRejected(): void

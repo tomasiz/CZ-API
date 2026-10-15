@@ -107,6 +107,23 @@ final class Input
         return $number;
     }
 
+    /** Jour facultatif `AAAA-MM-JJ` (existant dans le calendrier), à minuit UTC ; null si absent. Sinon `invalid_date`. */
+    public function optionalDate(string $field): ?\DateTimeImmutable
+    {
+        $value = $this->read($field, false, 10, true);
+        if ($value === null) {
+            return null;
+        }
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, new \DateTimeZone('UTC'));
+        if ($date === false || $date->format('Y-m-d') !== $value) {
+            $this->fail($field, 'invalid_date');
+
+            return null;
+        }
+
+        return $date;
+    }
+
     /** Enregistre une erreur de format sur un champ (à lever avec assertValid()). */
     public function fail(string $field, string $code = 'invalid_format'): void
     {

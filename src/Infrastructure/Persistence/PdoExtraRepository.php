@@ -35,6 +35,21 @@ final class PdoExtraRepository extends BaseRepository implements ExtraRepository
         return $row === null ? null : $this->hydrate($row);
     }
 
+    public function addLegacy(Extra $extra, int $legacyId): void
+    {
+        $this->insertRow(['id' => $extra->id, 'owner_id' => $extra->ownerId, 'month' => $extra->month, 'legacy_id' => $legacyId] + $this->values($extra));
+    }
+
+    public function legacyIds(): array
+    {
+        $ids = [];
+        foreach ($this->select(columns: 'legacy_id', where: 'legacy_id IS NOT NULL') as $row) {
+            $ids[(int) $row['legacy_id']] = true;
+        }
+
+        return $ids;
+    }
+
     public function add(Extra $extra): void
     {
         $this->insertRow(['id' => $extra->id, 'owner_id' => $extra->ownerId, 'month' => $extra->month] + $this->values($extra));

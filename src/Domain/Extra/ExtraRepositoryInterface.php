@@ -16,6 +16,16 @@ interface ExtraRepositoryInterface
 
     public function find(string $id): ?Extra;
 
+    /** Ajoute une prestation reprise de Facturiza (`paid_tasks`), en gardant son identifiant d'origine. */
+    public function addLegacy(Extra $extra, int $legacyId): void;
+
+    /**
+     * Identifiants d'origine des prestations reprises de Facturiza, supprimées comprises (relancer l'import ne les recrée pas).
+     *
+     * @return array<int, true>
+     */
+    public function legacyIds(): array;
+
     public function add(Extra $extra): void;
 
     /** Réécrit type, descriptif, prix et TVA (le propriétaire et le mois ne changent jamais). */

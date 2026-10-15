@@ -11,6 +11,7 @@ use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
+use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Domain\Reservation\ReservationRepositoryInterface;
@@ -35,6 +36,7 @@ use Casamiza\Tests\Support\InMemoryCompanySettings;
 use Casamiza\Tests\Support\InMemoryExtras;
 use Casamiza\Tests\Support\InMemoryIntegrations;
 use Casamiza\Tests\Support\InMemoryInvitationNotifier;
+use Casamiza\Tests\Support\InMemoryInvoices;
 use Casamiza\Tests\Support\InMemoryLoginAttempts;
 use Casamiza\Tests\Support\InMemoryLogoStorage;
 use Casamiza\Tests\Support\InMemoryOwners;
@@ -75,6 +77,7 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryExtras $extras;
     protected InMemoryStatements $statements;
     protected InvoicedMonths $invoiced;
+    protected InMemoryInvoices $invoices;
     protected InMemoryCompanySettings $company;
     protected InMemoryLogoStorage $logos;
     protected TenantContext $context;
@@ -114,7 +117,8 @@ abstract class AuthTestCase extends AppTestCase
         $this->reservations = new InMemoryReservations($context, $this->owners, $this->properties);
         $this->extras = new InMemoryExtras($context);
         $this->statements = new InMemoryStatements($context);
-        $this->invoiced = new InvoicedMonths();
+        $this->invoices = new InMemoryInvoices($context);
+        $this->invoiced = new InvoicedMonths($this->invoices, $context);
         $this->company = new InMemoryCompanySettings($context);
         $this->logos = new InMemoryLogoStorage();
         $this->thirdParty = new MockHandler();
@@ -151,6 +155,7 @@ abstract class AuthTestCase extends AppTestCase
             ReservationRepositoryInterface::class => $this->reservations,
             ExtraRepositoryInterface::class => $this->extras,
             StatementRepositoryInterface::class => $this->statements,
+            InvoiceRepositoryInterface::class => $this->invoices,
             InvoicedMonthsInterface::class => $this->invoiced,
             CompanySettingsRepositoryInterface::class => $this->company,
             LogoStorageInterface::class => $this->logos,

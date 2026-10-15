@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Statement;
 
+use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
+use Casamiza\Domain\Invoice\PaymentStatus;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
 use Casamiza\Shared\Exception\ConflictException;
 use Casamiza\Shared\Exception\NotFoundException;
@@ -17,6 +19,7 @@ final readonly class StatementService
         private OwnerRepositoryInterface $owners,
         private StatementRepositoryInterface $statements,
         private InvoicedMonthsInterface $invoiced,
+        private InvoiceRepositoryInterface $invoices,
         private ClockInterface $clock,
     ) {}
 
@@ -40,11 +43,24 @@ final readonly class StatementService
                 $flagged[$statement->ownerId . '|' . $statement->month] = true;
             }
         }
+        $now = $this->clock->now();
+        $invoices = [];
+        foreach ($this->invoices->active($ownerId, $month) as $invoice) {
+            $invoices[$invoice->ownerId . '|' . $invoice->month] = $invoice;
+        }
 
         $rows = [];
         foreach ($owners as $owner) {
             foreach ($months as $m) {
-                $rows[] = new StatementRow($owner->id, $m, isset($flagged[$owner->id . '|' . $m]) ? BillingStatus::NothingToInvoice : BillingStatus::ToInvoice);
+                $key = $owner->id . '|' . $m;
+                $invoice = $invoices[$key] ?? null;
+                $rows[] = new StatementRow($owner->id, $m, match (true) {
+                    $invoice?->paymentStatus === PaymentStatus::Paid => BillingStatus::Paid,
+                    $invoice?->isOverdue($now) === true => BillingStatus::Overdue,
+                    $invoice !== null => BillingStatus::Invoiced,
+                    isset($flagged[$key]) => BillingStatus::NothingToInvoice,
+                    default => BillingStatus::ToInvoice,
+                });
             }
         }
 
