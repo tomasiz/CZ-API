@@ -32,6 +32,8 @@ final readonly class CompanySettings
         public ?string $logoPath,
         /** TVA proposée à la saisie d'une prestation supplémentaire, par type. */
         public VatRates $vatRates = new VatRates(),
+        /** Coût logiciel mensuel HT par logement (tableau de bord) ; 0 = non renseigné. */
+        public float $softwareCost = 0.0,
     ) {}
 
     /** Réglages d'un tenant qui n'a encore rien saisi. */
@@ -66,6 +68,7 @@ final readonly class CompanySettings
                 $patch->vatRateLinen ?? $this->vatRates->linen,
                 $patch->vatRateCleaning ?? $this->vatRates->cleaning,
             ),
+            $patch->softwareCost ?? $this->softwareCost,
         );
     }
 
@@ -90,6 +93,7 @@ final readonly class CompanySettings
             $this->emailInvoiceTemplate,
             $logoPath,
             $this->vatRates,
+            $this->softwareCost,
         );
     }
 

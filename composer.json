@@ -10,6 +10,7 @@
         "php-di/php-di": "^7.1",
         "ramsey/uuid": "^4.9",
         "robmorgan/phinx": "^0.16.12",
+        "setasign/tfpdf": "^1.34",
         "slim/psr7": "^1.8",
         "slim/slim": "^4.15",
         "symfony/console": "^8.0",

@@ -88,6 +88,7 @@ final readonly class CompanyController
             'vatRateConcierge',
             'vatRateLinen',
             'vatRateCleaning',
+            'softwareCost',
         );
 
         $siret = $this->normalized($input, 'siret', 20, static fn(string $v): string => (string) preg_replace('/\s+/', '', $v), '/^\d{14}$/');
@@ -122,6 +123,7 @@ final readonly class CompanyController
             vatRateConcierge: $input->optionalNumber('vatRateConcierge', 0, 100),
             vatRateLinen: $input->optionalNumber('vatRateLinen', 0, 100),
             vatRateCleaning: $input->optionalNumber('vatRateCleaning', 0, 100),
+            softwareCost: $input->optionalNumber('softwareCost', 0, 1000),
         );
         $input->assertValid();
 

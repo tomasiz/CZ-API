@@ -21,7 +21,9 @@ use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use Throwable;
 
 /**
  * Création et lecture des factures. Une facture se calcule **à partir de la base** (réservations synchronisées,
@@ -41,8 +43,10 @@ final readonly class InvoiceService
         private InvoiceCalculator $calculator,
         private InvoiceSnapshotBuilder $snapshots,
         private InvoiceFileStorageInterface $files,
+        private InvoiceDocumentService $documents,
         private Transaction $transaction,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {}
 
     /**
@@ -60,7 +64,7 @@ final readonly class InvoiceService
         }
         $owner = $this->owners->find($ownerId) ?? throw new NotFoundException('owner_not_found');
 
-        return $this->transaction->run(function () use ($owner, $month, $note, $now): Invoice {
+        $invoice = $this->transaction->run(function () use ($owner, $month, $note, $now): Invoice {
             // Le numéro d'abord : il verrouille la séquence du tenant, donc deux créations simultanées passent l'une après l'autre.
             $number = $this->invoices->nextNumber();
             if ($this->invoices->hasActive($owner->id, $month)) {
@@ -97,6 +101,16 @@ final readonly class InvoiceService
 
             return $invoice;
         });
+
+        // Les PDF se fabriquent une fois la facture enregistrée : un échec n'annule pas une facture numérotée, le PDF sera
+        // fabriqué à la première consultation.
+        try {
+            return $this->documents->ensure($invoice);
+        } catch (Throwable $error) {
+            $this->logger->error('Invoice documents could not be generated.', ['invoice' => $invoice->id, 'exception' => $error]);
+
+            return $invoice;
+        }
     }
 
     /**
@@ -128,7 +142,8 @@ final readonly class InvoiceService
     }
 
     /**
-     * Le PDF de la facture (`$recap = false`) ou de son récapitulatif lié (`$recap = true`).
+     * Le PDF de la facture (`$recap = false`) ou de son récapitulatif lié (`$recap = true`). Celui d'une facture émise dans Casamiza
+     * dont la fabrication a échoué à l'émission est fabriqué ici, à la première demande.
      *
      * @throws NotFoundException `invoice_not_found`, `pdf_not_found` (aucun fichier pour cette facture, ou fichier absent du stockage)
      */
@@ -136,6 +151,16 @@ final readonly class InvoiceService
     {
         $invoice = $this->find($id);
         $path = $recap ? $invoice->recapPdfPath : $invoice->pdfPath;
+        // Les PDF repris de Facturiza restent tels quels : on ne fabrique jamais ceux qui manquent à une facture reprise.
+        if ($path === null && $invoice->snapshot !== null && $invoice->source === InvoiceSource::Casamiza) {
+            try {
+                $invoice = $this->documents->ensure($invoice);
+            } catch (Throwable $error) {
+                $this->logger->error('Invoice documents could not be generated.', ['invoice' => $invoice->id, 'exception' => $error]);
+                throw new NotFoundException('pdf_not_found');
+            }
+            $path = $recap ? $invoice->recapPdfPath : $invoice->pdfPath;
+        }
 
         return ($path === null ? null : $this->files->contents($path)) ?? throw new NotFoundException('pdf_not_found');
     }

@@ -11,6 +11,7 @@ use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Invoice\InvoiceSource;
 use Casamiza\Domain\Invoice\PaymentMethod;
 use Casamiza\Domain\Invoice\PaymentStatus;
+use Casamiza\Domain\Invoice\StoredInvoiceFile;
 use DateTimeImmutable;
 use DateTimeZone;
 use RuntimeException;
@@ -93,6 +94,16 @@ final class PdoInvoiceRepository extends BaseRepository implements InvoiceReposi
             'payment_method' => $invoice->paymentMethod?->value,
             'payment_date' => $invoice->paymentDate?->format('Y-m-d'),
         ]);
+    }
+
+    public function attachPdf(string $id, bool $recap, StoredInvoiceFile $file): bool
+    {
+        $statement = $this->pdo()->prepare($recap
+            ? 'UPDATE invoices SET recap_pdf_path = :path WHERE tenant_id = :tenant AND id = :id AND recap_pdf_path IS NULL'
+            : 'UPDATE invoices SET pdf_path = :path, pdf_sha256 = :sha256 WHERE tenant_id = :tenant AND id = :id AND pdf_path IS NULL');
+        $statement->execute(['path' => $file->path, 'tenant' => $this->tenant->id(), 'id' => $id] + ($recap ? [] : ['sha256' => $file->sha256]));
+
+        return $statement->rowCount() === 1;
     }
 
     public function all(): array

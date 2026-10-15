@@ -264,33 +264,25 @@ final class InvoiceTest extends AuthTestCase
         $invoice = $this->issue();
         $path = '/invoices/' . $invoice['id'];
 
-        // Une facture émise dans Casamiza n'a pas encore de PDF (moteur à venir) : 404, et la liste le dit.
-        self::assertFalse($invoice['hasPdf']);
-        self::assertFalse($invoice['hasRecap']);
-        $none = $this->call('GET', $path . '/pdf');
-        self::assertSame(404, $none->getStatusCode());
-        self::assertSame('pdf_not_found', $this->errorCode($none));
-
-        // Une facture reprise, avec ses deux fichiers.
-        $this->context->reset();
-        $this->context->set('tenant-a');
-        $key = 'tenant-a|' . $invoice['id'];
-        $this->invoiceFiles->files['invoices/test/2026/a.pdf'] = '%PDF-1.4 facture';
-        $this->invoiceFiles->files['invoices/test/2026/b.pdf'] = '%PDF-1.4 recap';
-        $this->invoices->rows[$key] = new Invoice(...[...get_object_vars($this->invoices->rows[$key]), 'pdfPath' => 'invoices/test/2026/a.pdf', 'recapPdfPath' => 'invoices/test/2026/b.pdf']);
-        $this->context->reset();
+        // Les deux PDF sont fabriqués à l'émission, d'après l'instantané, et rangés dans le stockage.
+        self::assertTrue($invoice['hasPdf']);
+        self::assertTrue($invoice['hasRecap']);
+        self::assertCount(1, $this->renderer->invoices);
+        self::assertCount(1, $this->renderer->recaps);
+        self::assertSame($invoice['displayNumber'], $this->renderer->invoices[0]->number);
 
         $pdf = $this->call('GET', $path . '/pdf');
         self::assertSame(200, $pdf->getStatusCode());
         self::assertSame('application/pdf', $pdf->getHeaderLine('Content-Type'));
         self::assertSame('private, no-store', $pdf->getHeaderLine('Cache-Control'));
-        self::assertSame('%PDF-1.4 facture', (string) $pdf->getBody());
-        self::assertSame('%PDF-1.4 recap', (string) $this->call('GET', $path . '/recap-pdf')->getBody());
+        self::assertSame('%PDF-fake invoice ' . $invoice['displayNumber'], (string) $pdf->getBody());
+        self::assertSame('%PDF-fake recap', (string) $this->call('GET', $path . '/recap-pdf')->getBody());
         self::assertSame([true, true], [$this->listing()[0]['hasPdf'], $this->listing()[0]['hasRecap']]);
 
-        // Fichier référencé mais absent du stockage : 404 aussi, jamais une erreur serveur.
-        unset($this->invoiceFiles->files['invoices/test/2026/b.pdf']);
+        // Fichier référencé mais absent du stockage : 404, jamais une erreur serveur (et rien n'est refabriqué).
+        $this->invoiceFiles->files = [];
         self::assertSame('pdf_not_found', $this->errorCode($this->call('GET', $path . '/recap-pdf')));
+        self::assertCount(1, $this->renderer->recaps);
 
         // Droits et isolation.
         foreach (['/pdf', '/recap-pdf'] as $suffix) {
@@ -299,6 +291,43 @@ final class InvoiceTest extends AuthTestCase
             self::assertSame(404, $other->getStatusCode());
             self::assertSame('invoice_not_found', $this->errorCode($other));
         }
+    }
+
+    public function testAFailingPdfEngineNeverPreventsIssuingAndThePdfIsBuiltOnFirstRequest(): void
+    {
+        $this->renderer->failing = true;
+        $invoice = $this->issue();
+        self::assertSame([false, false], [$invoice['hasPdf'], $invoice['hasRecap']]);
+        self::assertSame('FZ0000001', $invoice['displayNumber']);
+        $path = '/invoices/' . $invoice['id'];
+
+        // Toujours en panne : 404 `pdf_not_found`, jamais une erreur serveur.
+        self::assertSame('pdf_not_found', $this->errorCode($this->call('GET', $path . '/pdf')));
+        self::assertSame([], $this->invoiceFiles->files);
+
+        // Rétabli : le PDF est fabriqué à la première demande, puis réutilisé tel quel.
+        $this->renderer->failing = false;
+        self::assertSame('%PDF-fake invoice FZ0000001', (string) $this->call('GET', $path . '/pdf')->getBody());
+        self::assertSame('%PDF-fake recap', (string) $this->call('GET', $path . '/recap-pdf')->getBody());
+        $this->call('GET', $path . '/pdf');
+        self::assertCount(1, $this->renderer->invoices);
+        self::assertCount(2, $this->invoiceFiles->files);
+        self::assertSame([true, true], [$this->listing()[0]['hasPdf'], $this->listing()[0]['hasRecap']]);
+    }
+
+    public function testTheDocumentsAreBuiltFromTheFrozenSnapshotAndPrintTheInvoiceTotals(): void
+    {
+        $invoice = $this->issue();
+        $document = $this->renderer->invoices[0];
+
+        self::assertSame($invoice['displayNumber'], $document->number);
+        self::assertSame([250.48, 50.1, 300.58], [$document->totalHt, $document->totalVat, $document->totalTtc]);
+        self::assertSame('2026-10-07', $document->date->format('Y-m-d'));
+        self::assertSame('2026-11-07', $document->dueDate->format('Y-m-d'));
+        self::assertSame(['Alice Martin', 'SCI Les Pins', '12345678900012'], [$document->recipient->name, $document->recipient->legalName, $document->recipient->siret]);
+        self::assertSame(['Frais de conciergerie', 'Frais de linge', 'Frais de ménage'], array_map(static fn($section): string => $section->title, $document->sections));
+        self::assertCount(1, $this->renderer->recaps);
+        self::assertCount(2, $this->renderer->recaps[0]->cards);
     }
 
     public function testTheListNamesTheOwnerAndTheBilledPropertiesAndCanBeFiltered(): void

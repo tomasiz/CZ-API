@@ -58,6 +58,7 @@ final class PdoCompanySettingsRepository extends BaseRepository implements Compa
             'vat_rate_concierge' => $s->vatRates->concierge,
             'vat_rate_linen' => $s->vatRates->linen,
             'vat_rate_cleaning' => $s->vatRates->cleaning,
+            'software_cost' => $s->softwareCost,
         ];
     }
 
@@ -83,6 +84,7 @@ final class PdoCompanySettingsRepository extends BaseRepository implements Compa
             emailInvoiceTemplate: (string) ($row['email_invoice_template'] ?? ''),
             logoPath: $row['logo_path'] === null || $row['logo_path'] === '' ? null : (string) $row['logo_path'],
             vatRates: new VatRates((float) $row['vat_rate_concierge'], (float) $row['vat_rate_linen'], (float) $row['vat_rate_cleaning']),
+            softwareCost: (float) $row['software_cost'],
         );
     }
 }

@@ -9,8 +9,10 @@ use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
+use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
+use Casamiza\Domain\Invoice\Document\DocumentRendererInterface;
 use Casamiza\Domain\Invoice\InvoiceFileStorageInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
@@ -31,9 +33,11 @@ use Casamiza\Kernel;
 use Casamiza\Shared\TenantContext;
 use Casamiza\Shared\Transaction;
 use Casamiza\Tests\AppTestCase;
+use Casamiza\Tests\Support\FakeDocumentRenderer;
 use Casamiza\Tests\Support\FixedClock;
 use Casamiza\Tests\Support\ImmediateTransaction;
 use Casamiza\Tests\Support\InMemoryCompanySettings;
+use Casamiza\Tests\Support\InMemoryDashboard;
 use Casamiza\Tests\Support\InMemoryExtras;
 use Casamiza\Tests\Support\InMemoryIntegrations;
 use Casamiza\Tests\Support\InMemoryInvitationNotifier;
@@ -81,8 +85,10 @@ abstract class AuthTestCase extends AppTestCase
     protected InvoicedMonths $invoiced;
     protected InMemoryInvoices $invoices;
     protected InMemoryInvoiceFiles $invoiceFiles;
+    protected InMemoryDashboard $dashboard;
     protected InMemoryCompanySettings $company;
     protected InMemoryLogoStorage $logos;
+    protected FakeDocumentRenderer $renderer;
     protected TenantContext $context;
 
     /** Réponses de l'API des services tiers (aucun appel réseau réel dans les tests). */
@@ -122,9 +128,11 @@ abstract class AuthTestCase extends AppTestCase
         $this->statements = new InMemoryStatements($context);
         $this->invoices = new InMemoryInvoices($context, $this->properties);
         $this->invoiceFiles = new InMemoryInvoiceFiles();
+        $this->dashboard = new InMemoryDashboard($context, $this->invoices, $this->properties, $this->owners);
         $this->invoiced = new InvoicedMonths($this->invoices, $context);
         $this->company = new InMemoryCompanySettings($context);
         $this->logos = new InMemoryLogoStorage();
+        $this->renderer = new FakeDocumentRenderer();
         $this->thirdParty = new MockHandler();
         $calls = new \ArrayObject();
         $this->thirdPartyCalls = $calls;
@@ -161,9 +169,11 @@ abstract class AuthTestCase extends AppTestCase
             StatementRepositoryInterface::class => $this->statements,
             InvoiceRepositoryInterface::class => $this->invoices,
             InvoiceFileStorageInterface::class => $this->invoiceFiles,
+            DashboardRepositoryInterface::class => $this->dashboard,
             InvoicedMonthsInterface::class => $this->invoiced,
             CompanySettingsRepositoryInterface::class => $this->company,
             LogoStorageInterface::class => $this->logos,
+            DocumentRendererInterface::class => $this->renderer,
             ClientInterface::class => new Client(['handler' => $stack]),
             Transaction::class => new ImmediateTransaction(),
         ], compileContainer: false);

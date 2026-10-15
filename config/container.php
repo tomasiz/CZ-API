@@ -7,11 +7,13 @@ use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
+use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Guesty\GuestyDirectoryInterface;
 use Casamiza\Domain\Guesty\GuestyReservationsInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
 use Casamiza\Domain\Integration\ProviderRegistry;
+use Casamiza\Domain\Invoice\Document\DocumentRendererInterface;
 use Casamiza\Domain\Invoice\InvoiceFileStorageInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInvoicedMonths;
@@ -29,8 +31,11 @@ use Casamiza\Infrastructure\Integration\GuestyClient;
 use Casamiza\Infrastructure\Integration\GuestyProvider;
 use Casamiza\Infrastructure\Integration\StripeClient;
 use Casamiza\Infrastructure\Mail\LogInvitationNotifier;
+use Casamiza\Infrastructure\Pdf\PdfDocumentRenderer;
+use Casamiza\Infrastructure\Pdf\PdfFontDirectory;
 use Casamiza\Infrastructure\Persistence\PdoAuthUserRepository;
 use Casamiza\Infrastructure\Persistence\PdoCompanySettingsRepository;
+use Casamiza\Infrastructure\Persistence\PdoDashboardRepository;
 use Casamiza\Infrastructure\Persistence\PdoExtraRepository;
 use Casamiza\Infrastructure\Persistence\PdoIntegrationRepository;
 use Casamiza\Infrastructure\Persistence\PdoInvoiceRepository;
@@ -91,9 +96,13 @@ return [
     StatementRepositoryInterface::class => get(PdoStatementRepository::class),
     InvoiceRepositoryInterface::class => get(PdoInvoiceRepository::class),
     InvoicedMonthsInterface::class => get(InvoiceRepositoryInvoicedMonths::class),
+    DashboardRepositoryInterface::class => get(PdoDashboardRepository::class),
     CompanySettingsRepositoryInterface::class => get(PdoCompanySettingsRepository::class),
     InvoiceFileStorageInterface::class => static fn(ContainerInterface $c): FileInvoiceStorage => new FileInvoiceStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
     LogoStorageInterface::class => static fn(ContainerInterface $c): FileLogoStorage => new FileLogoStorage($c->get(Settings::class)->projectRoot . '/storage'),
+    DocumentRendererInterface::class => static fn(ContainerInterface $c): PdfDocumentRenderer => new PdfDocumentRenderer(
+        new PdfFontDirectory($c->get(Settings::class)->projectRoot . '/resources/pdf/fonts', $c->get(Settings::class)->projectRoot . '/storage/cache'),
+    ),
     ClientInterface::class => static fn(): Client => new Client(),
     Encryptor::class => static fn(ContainerInterface $c): Encryptor => new Encryptor($c->get(Settings::class)->encryptionKey),
     // Services tiers pris en charge : ajouter ici chaque nouveau fournisseur (Mailsend, Pennylane…).

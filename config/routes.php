@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Casamiza\Domain\User\Role;
 use Casamiza\Http\Controller\AuthController;
 use Casamiza\Http\Controller\CompanyController;
+use Casamiza\Http\Controller\DashboardController;
 use Casamiza\Http\Controller\ExtraController;
 use Casamiza\Http\Controller\HealthController;
 use Casamiza\Http\Controller\IntegrationController;
@@ -74,6 +75,9 @@ return static function (App $app): void {
                 $invoices->get('/{id}/recap-pdf', [InvoiceController::class, 'recapPdf']);
                 $invoices->get('/{id}/json', [InvoiceController::class, 'snapshot']);
             })->add(new RoleMiddleware(Role::Admin));
+
+            // Tableau de bord : chiffres figés des factures, administrateurs seulement.
+            $api->get('/dashboard', [DashboardController::class, 'index'])->add(new RoleMiddleware(Role::Admin));
 
             // Saisies locales du propriétaire (SIRET, raison sociale, clé Stripe en écriture seule) : administrateurs seulement.
             $api->group('/owners', function (RouteCollectorProxy $owners): void {

@@ -28,6 +28,14 @@ interface InvoiceRepositoryInterface
     public function updatePayment(Invoice $invoice): void;
 
     /**
+     * Rattache le PDF de la facture (avec son empreinte) ou, si `$recap`, celui de son récapitulatif. Un PDF déjà rattaché
+     * n'est jamais remplacé.
+     *
+     * @return bool faux si la facture avait déjà ce PDF (ou n'existe pas) : le fichier proposé n'est pas retenu
+     */
+    public function attachPdf(string $id, bool $recap, StoredInvoiceFile $file): bool;
+
+    /**
      * Toutes les factures, de la plus récente à la plus ancienne (numéro décroissant).
      *
      * @return list<Invoice>

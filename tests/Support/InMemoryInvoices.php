@@ -9,6 +9,7 @@ use Casamiza\Domain\Invoice\DraftReservation;
 use Casamiza\Domain\Invoice\Invoice;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Invoice\InvoiceSource;
+use Casamiza\Domain\Invoice\StoredInvoiceFile;
 use Casamiza\Shared\TenantContext;
 
 /** Factures en mémoire, bornées au tenant courant comme en base (la séquence de numéros aussi). */
@@ -79,6 +80,18 @@ final class InMemoryInvoices implements InvoiceRepositoryInterface
         if (isset($this->rows[$key])) {
             $this->rows[$key] = $invoice;
         }
+    }
+
+    public function attachPdf(string $id, bool $recap, StoredInvoiceFile $file): bool
+    {
+        $key = $this->context->id() . '|' . $id;
+        $invoice = $this->rows[$key] ?? null;
+        if ($invoice === null || ($recap ? $invoice->recapPdfPath : $invoice->pdfPath) !== null) {
+            return false;
+        }
+        $this->rows[$key] = new Invoice(...[...get_object_vars($invoice), ...($recap ? ['recapPdfPath' => $file->path] : ['pdfPath' => $file->path, 'pdfSha256' => $file->sha256])]);
+
+        return true;
     }
 
     public function all(): array
