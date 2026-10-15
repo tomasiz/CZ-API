@@ -15,6 +15,7 @@ use Casamiza\Domain\Statement\BillingMonth;
 use Casamiza\Domain\Statement\StatementRepositoryInterface;
 use Casamiza\Shared\Exception\ConflictException;
 use Casamiza\Shared\Exception\NotFoundException;
+use Casamiza\Shared\Exception\ServiceUnavailableException;
 use Casamiza\Shared\Exception\UnprocessableException;
 use Casamiza\Shared\Exception\ValidationException;
 use Casamiza\Shared\Transaction;
@@ -58,6 +59,7 @@ final readonly class InvoiceService
      * @throws NotFoundException `owner_not_found`
      * @throws UnprocessableException `month_not_billable` (invalide, pas terminé ou antérieur à janvier 2025), `nothing_to_bill` (aucune réservation ni prestation)
      * @throws ConflictException `month_already_invoiced`, `month_marked_nothing_to_invoice`
+     * @throws ServiceUnavailableException `invoice_pdf_failed` (la facture et son récapitulatif n'ont pas pu être fabriqués : rien n'est émis)
      */
     public function create(string $ownerId, string $month, ?string $note): Invoice
     {
@@ -76,18 +78,17 @@ final readonly class InvoiceService
             $invoice = $invoice->withSnapshot($this->snapshots->build($invoice, $owner, $billings, $draft));
             $this->invoices->add($invoice, $draft->lines, $draft->reservations);
 
-            return $invoice;
+            // Une facture sans son PDF n'existe pas : si la fabrication échoue, tout est annulé, numéro compris (pas de trou).
+            try {
+                return $this->documents->ensure($invoice);
+            } catch (Throwable $error) {
+                $this->logger->error('Invoice documents could not be generated.', ['invoice' => $invoice->id, 'exception' => $error]);
+
+                throw new ServiceUnavailableException('invoice_pdf_failed');
+            }
         });
 
-        // Les PDF se fabriquent une fois la facture enregistrée : un échec n'annule pas une facture numérotée, le PDF sera
-        // fabriqué à la première consultation.
-        try {
-            return $this->documents->ensure($invoice);
-        } catch (Throwable $error) {
-            $this->logger->error('Invoice documents could not be generated.', ['invoice' => $invoice->id, 'exception' => $error]);
-
-            return $invoice;
-        }
+        return $invoice;
     }
 
     /**
@@ -121,7 +122,7 @@ final readonly class InvoiceService
      * marqué « pas de facture ce mois-ci ».
      *
      * @throws NotFoundException `owner_not_found`
-     * @throws UnprocessableException `month_not_billable` (mois invalide ou antérieur à janvier 2025), `nothing_to_bill` (aucune réservation ce mois-là)
+     * @throws UnprocessableException `month_not_billable` (mois invalide ou antérieur à janvier 2025), `nothing_to_bill` (ni réservation ni prestation ce mois-là)
      * @throws ConflictException `month_already_invoiced`
      */
     public function draftRecap(string $ownerId, string $month): string
@@ -135,10 +136,11 @@ final readonly class InvoiceService
         $this->assertNotInvoiced($owner, $month, true);
 
         [$invoice, $draft, $billings] = $this->compose($owner, $month, null, 0, $now);
-        $snapshot = $this->snapshots->build($invoice, $owner, $billings, $draft);
-        if ($snapshot['facturation_par_listing'] === []) {
+        // Même règle que l'émission : un mois avec seulement des prestations se facture, donc son récapitulatif (sans carte) existe aussi.
+        if ($draft->lines === []) {
             throw new UnprocessableException('nothing_to_bill');
         }
+        $snapshot = $this->snapshots->build($invoice, $owner, $billings, $draft);
 
         return $this->documents->draftRecap($snapshot);
     }

@@ -45,13 +45,19 @@ final readonly class InvoiceDocumentService
         $company = $this->currentCompany();
         $year = $invoice->invoiceDate->format('Y');
 
-        if ($invoice->pdfPath === null) {
-            $bytes = $this->renderer->invoice($company, $this->documents->invoice($snapshot, $invoice->dueDate));
-            $this->attach($invoice, false, $bytes, $year);
+        // Tout est fabriqué avant de ranger quoi que ce soit : une panne du moteur ne laisse ni demi-facture ni fichier orphelin.
+        $invoiceBytes = $invoice->pdfPath === null
+            ? $this->renderer->invoice($company, $this->documents->invoice($snapshot, $invoice->dueDate))
+            : null;
+        $recapBytes = $invoice->recapPdfPath === null
+            ? $this->renderer->recap($company, $this->documents->recap($snapshot))
+            : null;
+
+        if ($invoiceBytes !== null) {
+            $this->attach($invoice, false, $invoiceBytes, $year);
         }
-        if ($invoice->recapPdfPath === null) {
-            $bytes = $this->renderer->recap($company, $this->documents->recap($snapshot));
-            $this->attach($invoice, true, $bytes, $year);
+        if ($recapBytes !== null) {
+            $this->attach($invoice, true, $recapBytes, $year);
         }
 
         return $this->invoices->find($invoice->id) ?? $invoice;

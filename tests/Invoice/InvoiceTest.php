@@ -293,26 +293,16 @@ final class InvoiceTest extends AuthTestCase
         }
     }
 
-    public function testAFailingPdfEngineNeverPreventsIssuingAndThePdfIsBuiltOnFirstRequest(): void
+    public function testAFailingPdfEngineRefusesTheInvoiceAndStoresNothing(): void
     {
         $this->renderer->failing = true;
-        $invoice = $this->issue();
-        self::assertSame([false, false], [$invoice['hasPdf'], $invoice['hasRecap']]);
-        self::assertSame('FZ0000001', $invoice['displayNumber']);
-        $path = '/invoices/' . $invoice['id'];
+        $response = $this->call('POST', '/invoices', ['ownerId' => 'owner-1', 'month' => '2026-09']);
 
-        // Toujours en panne : 404 `pdf_not_found`, jamais une erreur serveur.
-        self::assertSame('pdf_not_found', $this->errorCode($this->call('GET', $path . '/pdf')));
+        // Une facture sans son PDF n'existe pas : 503 et aucun fichier rangé (en production, la transaction annule aussi la facture
+        // et son numéro ; le double de test n'a pas de retour arrière).
+        self::assertSame(503, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame('invoice_pdf_failed', $this->errorCode($response));
         self::assertSame([], $this->invoiceFiles->files);
-
-        // Rétabli : le PDF est fabriqué à la première demande, puis réutilisé tel quel.
-        $this->renderer->failing = false;
-        self::assertSame('%PDF-fake invoice FZ0000001', (string) $this->call('GET', $path . '/pdf')->getBody());
-        self::assertSame('%PDF-fake recap', (string) $this->call('GET', $path . '/recap-pdf')->getBody());
-        $this->call('GET', $path . '/pdf');
-        self::assertCount(1, $this->renderer->invoices);
-        self::assertCount(2, $this->invoiceFiles->files);
-        self::assertSame([true, true], [$this->listing()[0]['hasPdf'], $this->listing()[0]['hasRecap']]);
     }
 
     public function testTheDocumentsAreBuiltFromTheFrozenSnapshotAndPrintTheInvoiceTotals(): void
@@ -398,6 +388,20 @@ final class InvoiceTest extends AuthTestCase
         $invoiced = $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-09']);
         self::assertSame(409, $invoiced->getStatusCode());
         self::assertSame('month_already_invoiced', $this->errorCode($invoiced));
+    }
+
+    public function testTheRecapDraftIsAvailableForAMonthWithOnlyExtras(): void
+    {
+        // Avril 2026 : aucune réservation, une prestation. La facture est possible, donc son récapitulatif (sans carte) aussi.
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $this->extras->add(Extra::priced('extra-april', 'owner-1', '2026-04', ExtraType::Concierge, 'Dépannage', 60.0, 20.0));
+        $this->context->reset();
+
+        $response = $this->call('POST', '/owners/owner-1/recap', ['month' => '2026-04']);
+
+        self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+        self::assertSame([], $this->renderer->recaps[0]->cards);
     }
 
     public function testTheRecapDraftIsAvailableForTheCurrentMonthToo(): void
