@@ -18,6 +18,7 @@ final class DashboardResource
             'properties' => array_map(static fn(DashboardProperty $p): array => [
                 'id' => $p->id,
                 'name' => $p->name,
+                'ownerId' => $p->ownerId,
                 'ownerName' => $p->ownerName,
                 'active' => $p->active,
             ], $overview->properties),
