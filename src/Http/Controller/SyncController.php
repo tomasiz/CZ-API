@@ -11,8 +11,6 @@ use Casamiza\Http\Request\Input;
 use Casamiza\Http\Resource\SyncReportResource;
 use Casamiza\Http\Response\JsonResponder;
 use Casamiza\Shared\Exception\ValidationException;
-use DateTimeImmutable;
-use DateTimeZone;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -25,7 +23,7 @@ final readonly class SyncController
     ) {}
 
     /**
-     * `month` (AAAA-MM, obligatoire) : réimporte de Guesty les réservations **dont le check-out tombe ce mois-là** (UTC, comme
+     * `month` (AAAA-MM, obligatoire) : réimporte de Guesty les réservations **dont le check-out tombe ce mois-là** (heure de Paris, comme
      * `GET /reservations?month=`) et recalcule leurs montants ; une réservation du mois qui a disparu de Guesty est archivée.
      * Les logements doivent déjà avoir été synchronisés (`POST /sync/guesty`). La requête attend la fin et renvoie le bilan.
      */
@@ -34,18 +32,18 @@ final readonly class SyncController
         $input = Input::fromBody($request->getParsedBody());
         $input->allowOnly('month');
         $month = $input->string('month', 7);
-        $from = BillingMonth::isValid($month) ? DateTimeImmutable::createFromFormat('!Y-m', $month, new DateTimeZone('UTC')) : false;
-        if ($from === false) {
+        $valid = BillingMonth::isValid($month);
+        if (!$valid) {
             $input->fail('month', 'invalid_value');
         }
         $input->assertValid();
-        if ($from === false) {
+        if (!$valid) {
             throw new ValidationException(['month' => ['invalid_value']]);
         }
 
-        return $this->json->data($response, SyncReportResource::reservations(
-            $this->reservations->sync($from, $from->modify('first day of next month')),
-        ));
+        [$from, $before] = BillingMonth::bounds($month);
+
+        return $this->json->data($response, SyncReportResource::reservations($this->reservations->sync($from, $before)));
     }
 
     /** Importe propriétaires et logements depuis Guesty ; la requête attend la fin et renvoie le bilan. */

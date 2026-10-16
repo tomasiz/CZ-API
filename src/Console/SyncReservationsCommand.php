@@ -6,6 +6,7 @@ namespace Casamiza\Console;
 
 use Casamiza\Domain\Integration\Provider;
 use Casamiza\Domain\Reservation\ReservationSyncService;
+use Casamiza\Domain\Statement\BillingMonth;
 use Casamiza\Domain\Tenant\TenantRepositoryInterface;
 use Casamiza\Shared\Exception\ApiException;
 use Casamiza\Shared\TenantContext;
@@ -50,7 +51,7 @@ final class SyncReservationsCommand extends Command
     {
         $since = $input->getOption('since');
         if ($since === null) {
-            $from = $this->clock->now()->setTimezone(new \DateTimeZone('UTC'))->modify('first day of last month')->setTime(0, 0);
+            $from = BillingMonth::startOfPreviousMonth($this->clock->now());
         } else {
             $from = is_string($since) ? DateTimeImmutable::createFromFormat('!Y-m-d', $since, new \DateTimeZone('UTC')) : false;
             if ($from === false) {

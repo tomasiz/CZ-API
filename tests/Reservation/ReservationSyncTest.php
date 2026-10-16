@@ -152,7 +152,11 @@ final class ReservationSyncTest extends AuthTestCase
         $before = count($this->thirdPartyCalls);
 
         // Guesty ne renvoie plus que OCT (modifiée) : OCT-GONE est archivée, SEP (hors fenêtre) reste intacte.
-        $this->thirdParty->append(self::ok(['_id' => 'acc-1']), self::page([self::reservation('OCT', overrides: ['guestsCount' => 5])]));
+        // Le filtre de Guesty est au jour près : 'NOV-PARIS' (23:30 UTC le 31/10 = 00:30 le 1er novembre à Paris) revient aussi, mais est écartée.
+        $this->thirdParty->append(self::ok(['_id' => 'acc-1']), self::page([
+            self::reservation('OCT', overrides: ['guestsCount' => 5]),
+            self::reservation('NOV-PARIS', checkOut: '2026-10-31T23:30:00.000Z'),
+        ]));
         // Un gestionnaire peut la lancer, comme la synchronisation des propriétaires et logements.
         $response = $this->request($this->app, 'POST', '/api/v1/sync/reservations', $this->bearer($this->accessToken('marc@a.test')), ['month' => '2026-10']);
 
@@ -163,10 +167,12 @@ final class ReservationSyncTest extends AuthTestCase
         self::assertSame(5, $this->reservations->byGuestyId('tenant-a', 'OCT')?->guests);
         self::assertTrue($this->reservations->byGuestyId('tenant-a', 'OCT-GONE')?->isArchived());
         self::assertFalse($this->reservations->byGuestyId('tenant-a', 'SEP')?->isArchived());
+        self::assertNull($this->reservations->byGuestyId('tenant-a', 'NOV-PARIS'));
 
+        // Octobre à Paris = du 30/09 22:00 UTC au 31/10 23:00 UTC : le filtre de Guesty (au jour près) est élargi au jour entier.
         $calls = array_slice($this->thirdPartyCalls->getArrayCopy(), $before);
         parse_str($calls[count($calls) - 1]['request']->getUri()->getQuery(), $query);
-        self::assertSame('[{"field":"status","operator":"$eq","value":"confirmed"},{"field":"checkOut","operator":"$gte","value":"2026-10-01"},{"field":"checkOut","operator":"$lt","value":"2026-11-01"}]', $query['filters'] ?? null);
+        self::assertSame('[{"field":"status","operator":"$eq","value":"confirmed"},{"field":"checkOut","operator":"$gte","value":"2026-09-30"},{"field":"checkOut","operator":"$lt","value":"2026-11-01"}]', $query['filters'] ?? null);
     }
 
     public function testTheRouteValidatesTheMonthAndNeedsAnAccount(): void

@@ -136,12 +136,14 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
 
     public function reservations(\DateTimeImmutable $from, ?\DateTimeImmutable $before = null): array
     {
+        // Le filtre de Guesty est au jour près (UTC) : on l'élargit au jour entier, l'appelant écarte l'excédent (minuit à Paris ≠ minuit UTC).
         $conditions = [
             ['field' => 'status', 'operator' => '$eq', 'value' => 'confirmed'],
             ['field' => 'checkOut', 'operator' => '$gte', 'value' => $from->format('Y-m-d')],
         ];
         if ($before !== null) {
-            $conditions[] = ['field' => 'checkOut', 'operator' => '$lt', 'value' => $before->format('Y-m-d')];
+            $day = $before->setTime(0, 0);
+            $conditions[] = ['field' => 'checkOut', 'operator' => '$lt', 'value' => ($day < $before ? $day->modify('+1 day') : $day)->format('Y-m-d')];
         }
         $filters = json_encode($conditions, JSON_THROW_ON_ERROR);
         // Sous-champs de `money` listés un à un : demander `money` en entier renvoie des centaines de lignes de détail.

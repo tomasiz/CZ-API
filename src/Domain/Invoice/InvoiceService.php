@@ -312,15 +312,15 @@ final readonly class InvoiceService
     }
 
     /**
-     * Réservations du mois (check-out dans le mois, en UTC), non archivées, hors séjours propriétaire, par logement (nom) puis par arrivée.
+     * Réservations du mois (check-out dans le mois, à minuit près à Paris), non archivées, hors séjours propriétaire, par logement (nom) puis par arrivée.
      *
      * @return list<PropertyBilling>
      */
     private function billings(string $ownerId, string $month): array
     {
-        $from = new DateTimeImmutable($month . '-01', new DateTimeZone('UTC'));
+        [$from, $before] = BillingMonth::bounds($month);
         $byProperty = [];
-        foreach ($this->reservations->checkingOutBetween($from, $from->modify('first day of next month')) as $reservation) {
+        foreach ($this->reservations->checkingOutBetween($from, $before) as $reservation) {
             if ($reservation->ownerId === $ownerId && $reservation->platform !== Platform::Owner) {
                 $byProperty[$reservation->propertyId][] = $reservation;
             }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Casamiza\Domain\Reservation;
 
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
+use Casamiza\Domain\Guesty\GuestyReservation;
 use Casamiza\Domain\Guesty\GuestyReservationsInterface;
 use Casamiza\Domain\Guesty\SyncCounts;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
@@ -58,7 +59,11 @@ final readonly class ReservationSyncService
             throw new NotFoundException('integration_not_configured');
         }
 
-        $guestyReservations = $this->guesty->reservations($from, $before);
+        // Guesty filtre au jour près : on ne garde que la fenêtre exacte, pour ne toucher à rien en dehors.
+        $guestyReservations = array_values(array_filter(
+            $this->guesty->reservations($from, $before),
+            static fn(GuestyReservation $r): bool => $r->checkOut >= $from && ($before === null || $r->checkOut < $before),
+        ));
         $now = $this->clock->now();
 
         return $this->transaction->run(function () use ($guestyReservations, $from, $before, $now): ReservationSyncReport {

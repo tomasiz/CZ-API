@@ -8,11 +8,10 @@ use Casamiza\Domain\Reservation\Platform;
 use Casamiza\Domain\Reservation\ReservationQuery;
 use Casamiza\Domain\Reservation\ReservationService;
 use Casamiza\Domain\Reservation\ReservationSort;
+use Casamiza\Domain\Statement\BillingMonth;
 use Casamiza\Http\Request\Input;
 use Casamiza\Http\Resource\ReservationResource;
 use Casamiza\Http\Response\JsonResponder;
-use DateTimeImmutable;
-use DateTimeZone;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -36,14 +35,10 @@ final readonly class ReservationController
         $month = $input->optionalString('month', 7);
         $from = $before = null;
         if ($month !== null) {
-            $from = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1
-                ? DateTimeImmutable::createFromFormat('!Y-m', $month, new DateTimeZone('UTC'))
-                : false;
-            if ($from === false) {
-                $input->fail('month');
-                $from = null;
+            if (preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1) {
+                [$from, $before] = BillingMonth::bounds($month);
             } else {
-                $before = $from->modify('first day of next month');
+                $input->fail('month');
             }
         }
 
