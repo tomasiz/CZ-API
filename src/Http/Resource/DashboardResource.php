@@ -31,8 +31,8 @@ final class DashboardResource
                 'conciergeTtc' => $r->conciergeTtcCents / 100,
                 'linenHt' => $r->linenHtCents / 100,
                 'linenTtc' => $r->linenTtcCents / 100,
-                'cleaningHt' => $r->cleaningHtCents / 100,
-                'cleaningTtc' => $r->cleaningTtcCents / 100,
+                'disbursementHt' => $r->disbursementHtCents / 100,
+                'disbursementTtc' => $r->disbursementTtcCents / 100,
                 'softwareCost' => $r->softwareCostCents / 100,
             ], $overview->records),
         ];

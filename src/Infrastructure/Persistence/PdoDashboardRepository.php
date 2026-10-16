@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Casamiza\Infrastructure\Persistence;
 
 use Casamiza\Domain\Dashboard\BilledAmount;
+use Casamiza\Domain\Dashboard\BilledCategory;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Dashboard\InvoiceActivity;
 use Casamiza\Domain\Extra\ExtraType;
+use Casamiza\Domain\Invoice\InvoiceLineKind;
 
 /**
  * Agrégats du tableau de bord sur les colonnes figées des factures **non annulées**. Les montants sont additionnés en
@@ -45,12 +47,12 @@ final class PdoDashboardRepository extends BaseRepository implements DashboardRe
     public function billed(): array
     {
         $rows = $this->fetch(
-            'SELECT l.invoice_id, i.owner_id, l.property_id, l.month, l.category,
+            'SELECT l.invoice_id, i.owner_id, l.property_id, l.month, l.kind, l.category,
                     CAST(ROUND(SUM(l.price_ttc) * 100) AS SIGNED) AS ttc, CAST(ROUND(SUM(l.price_ht) * 100) AS SIGNED) AS ht
              FROM invoice_lines l
              JOIN invoices i ON i.tenant_id = l.tenant_id AND i.id = l.invoice_id
              WHERE l.tenant_id = :tenant AND i.cancelled_at IS NULL
-             GROUP BY l.invoice_id, i.owner_id, l.property_id, l.month, l.category',
+             GROUP BY l.invoice_id, i.owner_id, l.property_id, l.month, l.kind, l.category',
         );
 
         return array_map(static fn(array $row): BilledAmount => new BilledAmount(
@@ -58,7 +60,7 @@ final class PdoDashboardRepository extends BaseRepository implements DashboardRe
             (string) $row['owner_id'],
             $row['property_id'] === null ? null : (string) $row['property_id'],
             (string) $row['month'],
-            ExtraType::from((string) $row['category']),
+            BilledCategory::of(InvoiceLineKind::from((string) $row['kind']), ExtraType::from((string) $row['category'])),
             (int) $row['ttc'],
             (int) $row['ht'],
         ), $rows);

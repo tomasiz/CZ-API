@@ -46,13 +46,13 @@ final class DashboardTest extends AuthTestCase
     }
 
     /** @param non-empty-string $id */
-    private function reservation(string $id, string $propertyId, string $checkIn, string $checkOut, float $conciergeFee): void
+    private function reservation(string $id, string $propertyId, string $checkIn, string $checkOut, float $conciergeFee, string $source = 'airbnb2'): void
     {
         $owner = $propertyId === 'prop-b' ? 'owner-b' : 'owner-1';
         $this->reservations->add(Reservation::fromGuesty($id, new GuestyReservation(
             'G-' . $id,
             'L',
-            'airbnb2',
+            $source,
             [],
             '',
             'Voyageur',
@@ -165,7 +165,7 @@ final class DashboardTest extends AuthTestCase
 
         $ttc = $ht = 0;
         foreach ($records as $record) {
-            foreach (['concierge', 'linen', 'cleaning'] as $category) {
+            foreach (['concierge', 'linen', 'disbursement'] as $category) {
                 $ttc += (int) round(((float) $record[$category . 'Ttc']) * 100);
                 $ht += (int) round(((float) $record[$category . 'Ht']) * 100);
             }
@@ -182,7 +182,7 @@ final class DashboardTest extends AuthTestCase
         $records = $this->records();
 
         $linen = array_sum(array_map(static fn(array $r): float => (float) $r['linenTtc'], $records));
-        $cleaning = array_sum(array_map(static fn(array $r): float => (float) $r['cleaningTtc'], $records));
+        $cleaning = array_sum(array_map(static fn(array $r): float => (float) $r['disbursementTtc'], $records));
         // Linge des séjours : 2 × 17 € sur la villa ; prestation de 17 € répartie 7 nuits / 1 nuit (1488 + 212 cents).
         self::assertEqualsWithDelta(51.0, $linen, 0.001);
         // Ménage : 2 × 48 + 30 − 10 (avoir).
@@ -206,6 +206,23 @@ final class DashboardTest extends AuthTestCase
         self::assertEqualsWithDelta(40.0, array_sum(array_map(static fn(array $r): float => (float) $r['conciergeTtc'], $august)), 0.001);
         self::assertSame([0, 0], array_map(static fn(array $r): mixed => $r['nights'], $august));
         self::assertEqualsWithDelta(20.0, $august[0]['conciergeTtc'], 0.001);
+    }
+
+    public function testPlatformCommissionsAreDisbursementsNotRevenue(): void
+    {
+        // Août : un séjour Abritel (commission de 50 € refacturée) sur le studio, dont le ménage est de 30 €.
+        $this->context->set('tenant-a');
+        $this->reservation('res-abritel', 'prop-2', '2026-08-10', '2026-08-12', 20.0, 'homeaway2');
+        $this->context->reset();
+        $response = $this->call('POST', '/invoices', ['ownerId' => 'owner-1', 'month' => '2026-08']);
+        self::assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+
+        $august = array_values(array_filter($this->records(), static fn(array $r): bool => $r['month'] === '2026-08'));
+
+        self::assertCount(1, $august);
+        // Revenu : seulement les frais de conciergerie ; débours : ménage (30) + commission Abritel (50).
+        self::assertEqualsWithDelta(20.0, $august[0]['conciergeTtc'], 0.001);
+        self::assertEqualsWithDelta(80.0, $august[0]['disbursementTtc'], 0.001);
     }
 
     public function testACancelledInvoiceIsIgnored(): void

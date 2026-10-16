@@ -17,8 +17,8 @@ final readonly class PropertyMonth
         public int $conciergeTtcCents,
         public int $linenHtCents,
         public int $linenTtcCents,
-        public int $cleaningHtCents,
-        public int $cleaningTtcCents,
+        public int $disbursementHtCents,
+        public int $disbursementTtcCents,
         public int $softwareCostCents,
     ) {}
 }

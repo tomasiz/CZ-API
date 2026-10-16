@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Casamiza\Tests\Support;
 
 use Casamiza\Domain\Dashboard\BilledAmount;
+use Casamiza\Domain\Dashboard\BilledCategory;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Dashboard\InvoiceActivity;
@@ -40,8 +41,9 @@ final class InMemoryDashboard implements DashboardRepositoryInterface
         $grouped = [];
         foreach ($this->activeInvoices() as $key => $invoice) {
             foreach ($this->invoices->lines[$key] ?? [] as $line) {
-                $id = $invoice->id . '|' . ($line->propertyId ?? '') . '|' . $line->category->value;
-                $current = $grouped[$id] ?? [$invoice->id, $invoice->ownerId, $line->propertyId, $invoice->month, $line->category, 0, 0];
+                $category = BilledCategory::of($line->kind, $line->category);
+                $id = $invoice->id . '|' . ($line->propertyId ?? '') . '|' . $category->value;
+                $current = $grouped[$id] ?? [$invoice->id, $invoice->ownerId, $line->propertyId, $invoice->month, $category, 0, 0];
                 $grouped[$id] = [$current[0], $current[1], $current[2], $current[3], $current[4], $current[5] + (int) round($line->priceTtc * 100), $current[6] + (int) round($line->priceHt * 100)];
             }
         }

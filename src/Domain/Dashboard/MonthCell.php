@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Dashboard;
 
-use Casamiza\Domain\Extra\ExtraType;
-
 /** Cumul en cours d'un logement pour un mois (centimes entiers), transformé en `PropertyMonth` à la fin. */
 final class MonthCell
 {
@@ -24,7 +22,7 @@ final class MonthCell
         $this->payout += $payoutCents;
     }
 
-    public function addBilled(ExtraType $category, int $ttcCents, int $htCents): void
+    public function addBilled(BilledCategory $category, int $ttcCents, int $htCents): void
     {
         $current = $this->billed[$category->value] ?? ['ht' => 0, 'ttc' => 0];
         $this->billed[$category->value] = ['ht' => $current['ht'] + $htCents, 'ttc' => $current['ttc'] + $ttcCents];
@@ -32,7 +30,7 @@ final class MonthCell
 
     public function toRecord(int $softwareCostCents): PropertyMonth
     {
-        $amount = fn(ExtraType $type, string $basis): int => $this->billed[$type->value][$basis] ?? 0;
+        $amount = fn(BilledCategory $type, string $basis): int => $this->billed[$type->value][$basis] ?? 0;
 
         return new PropertyMonth(
             $this->propertyId,
@@ -40,12 +38,12 @@ final class MonthCell
             $this->reservations,
             $this->nights,
             $this->payout,
-            $amount(ExtraType::Concierge, 'ht'),
-            $amount(ExtraType::Concierge, 'ttc'),
-            $amount(ExtraType::Linen, 'ht'),
-            $amount(ExtraType::Linen, 'ttc'),
-            $amount(ExtraType::Cleaning, 'ht'),
-            $amount(ExtraType::Cleaning, 'ttc'),
+            $amount(BilledCategory::Concierge, 'ht'),
+            $amount(BilledCategory::Concierge, 'ttc'),
+            $amount(BilledCategory::Linen, 'ht'),
+            $amount(BilledCategory::Linen, 'ttc'),
+            $amount(BilledCategory::Disbursement, 'ht'),
+            $amount(BilledCategory::Disbursement, 'ttc'),
             $this->propertyId === null ? 0 : $softwareCostCents,
         );
     }
