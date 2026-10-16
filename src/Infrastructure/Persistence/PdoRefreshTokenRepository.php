@@ -67,4 +67,11 @@ final readonly class PdoRefreshTokenRepository implements RefreshTokenRepository
             ->prepare('UPDATE refresh_tokens SET revoked_at = :at WHERE family_id = :family AND revoked_at IS NULL')
             ->execute(['at' => DbDate::toDb($at), 'family' => $familyId]);
     }
+
+    public function revokeAllForUser(string $tenantId, string $userId, DateTimeImmutable $at): void
+    {
+        $this->database->pdo()
+            ->prepare('UPDATE refresh_tokens SET revoked_at = :at WHERE tenant_id = :tenant AND user_id = :user AND revoked_at IS NULL')
+            ->execute(['at' => DbDate::toDb($at), 'tenant' => $tenantId, 'user' => $userId]);
+    }
 }

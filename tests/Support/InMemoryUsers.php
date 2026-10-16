@@ -49,7 +49,13 @@ final class InMemoryUsers implements AuthUserRepositoryInterface, UserRepository
         }
     }
 
-    public function updatePasswordHash(string $tenantId, string $userId, string $hash): void {}
+    public function updatePasswordHash(string $tenantId, string $userId, string $hash): void
+    {
+        $user = $this->findInTenant($tenantId, $userId);
+        if ($user !== null) {
+            $this->users[$userId] = new User($user->id, $user->tenantId, $user->firstName, $user->lastName, $user->email, $hash, $user->role, $user->lastLoginAt, $user->status);
+        }
+    }
 
     public function find(string $id): ?User
     {

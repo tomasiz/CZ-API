@@ -99,6 +99,7 @@ final readonly class TeamController
             'invitation' => [
                 'url' => $this->link->for($invitation->token),
                 'expiresAt' => $invitation->expiresAt->format(DateTimeInterface::ATOM),
+                'emailSent' => $invitation->emailSent,
             ],
         ];
     }

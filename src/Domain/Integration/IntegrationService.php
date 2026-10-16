@@ -128,6 +128,21 @@ final readonly class IntegrationService
         return $result->token->value ?? throw CheckFailure::Unreachable->toException();
     }
 
+    /**
+     * Identifiants et réglages enregistrés du service (secrets déchiffrés), pour appeler son API. Ne contacte pas le tiers
+     * et ne modifie rien : à réserver aux clients d'API, jamais à une réponse HTTP.
+     *
+     * @return array<string, string>
+     * @throws NotFoundException `integration_not_configured`
+     */
+    public function values(string $name): array
+    {
+        $provider = $this->providers->get($name);
+        $existing = $this->integrations->find($provider->provider()) ?? throw new NotFoundException('integration_not_configured');
+
+        return $this->secretsOf($existing) + $existing->settings;
+    }
+
     /** @return array{IntegrationEntry, CheckResult} */
     private function verify(string $name, bool $renew): array
     {

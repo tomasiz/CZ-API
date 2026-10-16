@@ -78,7 +78,7 @@ Routing. Slim exécute le dernier `add()` en premier.
 - Requêtes **toujours préparées** ; `ORDER BY` / colonnes dynamiques en liste blanche ; `$where` / `$suffix` de
   `BaseRepository` sont du SQL écrit par le développeur, jamais une entrée utilisateur.
 - Valider chaque entrée (DTO) et rejeter les champs inconnus.
-- Secrets de tiers (Guesty, Mailsend, Pennylane, clé Stripe des propriétaires) **chiffrés au repos**, jamais
+- Secrets de tiers (Guesty, MailerSend, Pennylane, clé Stripe des propriétaires) **chiffrés au repos**, jamais
   renvoyés, jamais loggés. Pas de donnée personnelle ni de jeton dans les logs.
 - Erreurs : lever une `ApiException` (`NotFound`, `Forbidden`, `Validation`…) portant un **code** `snake_case`
   (jamais une phrase, jamais de français) ; `ErrorHandler` produit la réponse d'erreur `{error: {code, fields?}}`. Une exception inattendue ne doit rien révéler en production.

@@ -6,6 +6,7 @@ namespace Casamiza\Http\Controller;
 
 use Casamiza\Domain\Auth\AuthService;
 use Casamiza\Domain\Auth\AuthSession;
+use Casamiza\Domain\Auth\PasswordResetService;
 use Casamiza\Domain\Team\InvitationService;
 use Casamiza\Http\Cookie\RefreshCookie;
 use Casamiza\Http\Request\Input;
@@ -22,6 +23,7 @@ final readonly class AuthController
         private JsonResponder $json,
         private RefreshCookie $cookie,
         private InvitationService $invitations,
+        private PasswordResetService $passwordReset,
     ) {}
 
     public function login(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -68,6 +70,34 @@ final readonly class AuthController
         $input->assertValid();
 
         $this->invitations->activate($token, $password);
+
+        return $this->json->noContent($response);
+    }
+
+    /** Demande de lien de réinitialisation : réponse identique (204) que l'adresse existe ou non. */
+    public function forgotPassword(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $input = Input::fromBody($request->getParsedBody());
+        $input->allowOnly('email');
+        $email = $input->email('email');
+        $input->assertValid();
+
+        $ip = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
+        $this->passwordReset->request($email, is_string($ip) ? $ip : 'unknown');
+
+        return $this->json->noContent($response);
+    }
+
+    /** Nouveau mot de passe choisi avec le jeton reçu par e-mail ; toutes les sessions du compte prennent fin. */
+    public function resetPassword(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $input = Input::fromBody($request->getParsedBody());
+        $input->allowOnly('token', 'password');
+        $token = $input->string('token', 200);
+        $password = $input->string('password', 1024, trim: false);
+        $input->assertValid();
+
+        $this->passwordReset->reset($token, $password);
 
         return $this->json->noContent($response);
     }

@@ -105,6 +105,34 @@ final class TeamTest extends AuthTestCase
         self::assertSame(200, $this->login('nina@a.test', 'un-mot-de-passe-solide')->getStatusCode());
     }
 
+    public function testTheResponseSaysWhetherTheEmailWasSent(): void
+    {
+        $body = ['firstName' => 'Nina', 'lastName' => 'Nouvelle', 'email' => 'nina@a.test', 'role' => 'manager'];
+
+        $sent = $this->json($this->asAdmin('POST', '/api/v1/team', $body))['data'];
+        self::assertIsArray($sent);
+        self::assertIsArray($sent['invitation']);
+        self::assertTrue($sent['invitation']['emailSent']);
+
+        // E-mail impossible : l'invitation existe, l'administrateur est prévenu et garde le lien
+        $this->notifier->delivers = false;
+        $failed = $this->json($this->asAdmin('POST', '/api/v1/team', [...$body, 'email' => 'nolan@a.test']))['data'];
+        self::assertIsArray($failed);
+        self::assertIsArray($failed['invitation']);
+        self::assertFalse($failed['invitation']['emailSent']);
+        self::assertNotSame('', $failed['invitation']['url']);
+
+        $again = $this->json($this->asAdmin('POST', '/api/v1/team/' . $this->idOfInvited('nolan@a.test') . '/invitation'))['data'];
+        self::assertIsArray($again);
+        self::assertIsArray($again['invitation']);
+        self::assertFalse($again['invitation']['emailSent']);
+        $this->notifier->delivers = true;
+        $resent = $this->json($this->asAdmin('POST', '/api/v1/team/' . $this->idOfInvited('nolan@a.test') . '/invitation'))['data'];
+        self::assertIsArray($resent);
+        self::assertIsArray($resent['invitation']);
+        self::assertTrue($resent['invitation']['emailSent']);
+    }
+
     public function testTheLinkIsNeverExposedByTheTeamListing(): void
     {
         $invitation = $this->invitationOf($this->asAdmin('POST', '/api/v1/team', ['firstName' => 'N', 'lastName' => 'N', 'email' => 'n@a.test', 'role' => 'manager']));

@@ -37,8 +37,8 @@ final readonly class InvitationService
     ) {}
 
     /**
-     * L'invitation renvoyée porte le jeton en clair : l'administrateur transmet lui-même le lien tant que l'envoi
-     * d'e-mails n'existe pas (et peut toujours le faire en plus).
+     * Le lien est envoyé par e-mail au membre (`emailSent` dit si l'envoi a réussi). L'invitation renvoyée porte aussi le
+     * jeton en clair : l'administrateur peut transmettre le lien lui-même si l'e-mail n'est pas parti.
      *
      * @throws \Casamiza\Shared\Exception\ConflictException `email_already_used`
      */
@@ -60,9 +60,8 @@ final readonly class InvitationService
 
             return $this->issueToken($user);
         });
-        $this->notifier->notify($user, $invitation->token);
 
-        return $invitation;
+        return $invitation->withEmailSent($this->notifier->notify($user, $invitation->token));
     }
 
     /**
@@ -83,9 +82,8 @@ final readonly class InvitationService
 
             return $this->issueToken($user);
         });
-        $this->notifier->notify($invitation->user, $invitation->token);
 
-        return $invitation;
+        return $invitation->withEmailSent($this->notifier->notify($invitation->user, $invitation->token));
     }
 
     private function issueToken(User $user): Invitation

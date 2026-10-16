@@ -17,4 +17,7 @@ interface RefreshTokenRepositoryInterface
     public function markUsed(string $id, DateTimeImmutable $at): bool;
 
     public function revokeFamily(string $familyId, DateTimeImmutable $at): void;
+
+    /** Termine toutes les sessions de l'utilisateur (changement de mot de passe). */
+    public function revokeAllForUser(string $tenantId, string $userId, DateTimeImmutable $at): void;
 }

@@ -197,6 +197,12 @@ final readonly class InvoiceService
         return ($path === null ? null : $this->files->contents($path)) ?? throw new NotFoundException('pdf_not_found');
     }
 
+    /** La facture non annulée de ce propriétaire pour ce mois, s'il y en a une (sans son instantané). */
+    public function activeFor(string $ownerId, string $month): ?Invoice
+    {
+        return $this->invoices->active($ownerId, $month)[0] ?? null;
+    }
+
     /** @throws NotFoundException `invoice_not_found` */
     public function find(string $id): Invoice
     {

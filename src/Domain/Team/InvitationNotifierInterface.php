@@ -9,5 +9,6 @@ use Casamiza\Domain\User\User;
 /** Fait parvenir au membre invité son lien d'activation (e-mail). */
 interface InvitationNotifierInterface
 {
-    public function notify(User $user, string $token): void;
+    /** @return bool vrai si l'e-mail est parti ; faux sinon (jamais d'exception : l'invitation existe de toute façon) */
+    public function notify(User $user, string $token): bool;
 }

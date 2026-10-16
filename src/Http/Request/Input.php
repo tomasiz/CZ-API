@@ -185,6 +185,42 @@ final class Input
     }
 
     /**
+     * Liste non vide de valeurs d'une énumération : un tableau JSON (`["invoice","recap"]`) ou, en paramètre d'URL, des
+     * valeurs séparées par des virgules. Les doublons sont ignorés.
+     *
+     * @template T of \BackedEnum
+     * @param class-string<T> $enum
+     * @return list<T>
+     */
+    public function enumList(string $field, string $enum): array
+    {
+        $value = $this->data[$field] ?? null;
+        if ($value === null || $value === '' || $value === []) {
+            $this->errors[$field][] = 'required';
+
+            return [];
+        }
+        $items = is_string($value) ? explode(',', $value) : $value;
+        if (!is_array($items) || count($items) > 10) {
+            $this->errors[$field][] = 'invalid_type';
+
+            return [];
+        }
+        $cases = [];
+        foreach ($items as $item) {
+            $case = is_string($item) ? $enum::tryFrom(trim($item)) : null;
+            if ($case === null) {
+                $this->errors[$field][] = 'invalid_value';
+
+                return [];
+            }
+            $cases[$case->value] = $case;
+        }
+
+        return array_values($cases);
+    }
+
+    /**
      * Liste de valeurs séparées par des virgules (`a,b,c`), vide si absente. Au plus `$maxItems` valeurs de `$maxLength`
      * caractères ; les doublons sont ignorés.
      *

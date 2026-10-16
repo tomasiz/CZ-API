@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
+use Casamiza\Domain\Auth\PasswordResetNotifierInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
@@ -17,6 +18,7 @@ use Casamiza\Domain\Invoice\Document\DocumentRendererInterface;
 use Casamiza\Domain\Invoice\InvoiceFileStorageInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInvoicedMonths;
+use Casamiza\Domain\Mail\MailerInterface;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Domain\Reservation\ReservationRepositoryInterface;
@@ -29,8 +31,11 @@ use Casamiza\Domain\Tenant\TenantRepositoryInterface;
 use Casamiza\Domain\User\UserRepositoryInterface;
 use Casamiza\Infrastructure\Integration\GuestyClient;
 use Casamiza\Infrastructure\Integration\GuestyProvider;
+use Casamiza\Infrastructure\Integration\MailerSendProvider;
 use Casamiza\Infrastructure\Integration\StripeClient;
-use Casamiza\Infrastructure\Mail\LogInvitationNotifier;
+use Casamiza\Infrastructure\Mail\MailerSendInvitationNotifier;
+use Casamiza\Infrastructure\Mail\MailerSendMailer;
+use Casamiza\Infrastructure\Mail\MailerSendPasswordResetNotifier;
 use Casamiza\Infrastructure\Pdf\PdfDocumentRenderer;
 use Casamiza\Infrastructure\Pdf\PdfFontDirectory;
 use Casamiza\Infrastructure\Persistence\PdoAuthUserRepository;
@@ -52,8 +57,10 @@ use Casamiza\Infrastructure\Persistence\PdoUserTokenRepository;
 use Casamiza\Infrastructure\Security\Encryptor;
 use Casamiza\Infrastructure\Storage\FileInvoiceStorage;
 use Casamiza\Infrastructure\Storage\FileLogoStorage;
+use Casamiza\Shared\AfterResponse;
 use Casamiza\Shared\RequestContext;
 use Casamiza\Shared\Settings;
+use Casamiza\Shared\ShutdownAfterResponse;
 use Casamiza\Shared\SystemClock;
 use Casamiza\Shared\TenantContext;
 use Casamiza\Shared\Transaction;
@@ -82,7 +89,9 @@ return [
     TenantRepositoryInterface::class => get(PdoTenantRepository::class),
     UserRepositoryInterface::class => get(PdoUserRepository::class),
     UserTokenRepositoryInterface::class => get(PdoUserTokenRepository::class),
-    InvitationNotifierInterface::class => get(LogInvitationNotifier::class),
+    InvitationNotifierInterface::class => get(MailerSendInvitationNotifier::class),
+    PasswordResetNotifierInterface::class => get(MailerSendPasswordResetNotifier::class),
+    AfterResponse::class => get(ShutdownAfterResponse::class),
     Transaction::class => get(PdoTransaction::class),
 
     IntegrationRepositoryInterface::class => get(PdoIntegrationRepository::class),
@@ -106,10 +115,12 @@ return [
     ),
     ClientInterface::class => static fn(): Client => new Client(),
     Encryptor::class => static fn(ContainerInterface $c): Encryptor => new Encryptor($c->get(Settings::class)->encryptionKey),
-    // Services tiers pris en charge : ajouter ici chaque nouveau fournisseur (Mailsend, Pennylane…).
+    // Services tiers pris en charge : ajouter ici chaque nouveau fournisseur (Pennylane…).
     ProviderRegistry::class => static fn(ContainerInterface $c): ProviderRegistry => new ProviderRegistry([
         $c->get(GuestyProvider::class),
+        $c->get(MailerSendProvider::class),
     ]),
+    MailerInterface::class => get(MailerSendMailer::class),
 
     LoggerInterface::class => static function (ContainerInterface $c): Logger {
         $settings = $c->get(Settings::class);

@@ -8,6 +8,6 @@ namespace Casamiza\Domain\Integration;
 enum Provider: string
 {
     case Guesty = 'guesty';
-    case Mailsend = 'mailsend';
+    case MailerSend = 'mailersend';
     case Pennylane = 'pennylane';
 }

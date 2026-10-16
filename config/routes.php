@@ -12,6 +12,7 @@ use Casamiza\Http\Controller\IntegrationController;
 use Casamiza\Http\Controller\InvoiceController;
 use Casamiza\Http\Controller\MeController;
 use Casamiza\Http\Controller\OwnerController;
+use Casamiza\Http\Controller\OwnerEmailController;
 use Casamiza\Http\Controller\PropertyController;
 use Casamiza\Http\Controller\ReservationController;
 use Casamiza\Http\Controller\StatementController;
@@ -34,6 +35,8 @@ return static function (App $app): void {
             $auth->post('/logout', [AuthController::class, 'logout']);
             $auth->post('/activation', [AuthController::class, 'inspectActivation']);
             $auth->post('/activate', [AuthController::class, 'activate']);
+            $auth->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+            $auth->post('/reset-password', [AuthController::class, 'resetPassword']);
         })->add(CsrfOriginMiddleware::class);
 
         // Authentifiées : le tenant vient du JWT. Restreindre un rôle : ->add(new RoleMiddleware(Role::Admin)).
@@ -87,6 +90,9 @@ return static function (App $app): void {
                 $owners->patch('/{id}', [OwnerController::class, 'update']);
                 // Récapitulatif d'un mois pas encore facturé (PDF calculé à la demande, non conservé).
                 $owners->post('/{id}/recap', [InvoiceController::class, 'draftRecap']);
+                // E-mail de la facture et/ou du récapitulatif d'un mois (MailerSend) : préparation, puis envoi.
+                $owners->get('/{id}/email', [OwnerEmailController::class, 'show']);
+                $owners->post('/{id}/email', [OwnerEmailController::class, 'send']);
                 $owners->delete('/{id}/stripe-key', [OwnerController::class, 'removeStripeKey']);
             })->add(new RoleMiddleware(Role::Admin));
 

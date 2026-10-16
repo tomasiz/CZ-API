@@ -6,6 +6,7 @@ namespace Casamiza\Tests\Auth;
 
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
+use Casamiza\Domain\Auth\PasswordResetNotifierInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
@@ -30,11 +31,13 @@ use Casamiza\Domain\User\UserRepositoryInterface;
 use Casamiza\Infrastructure\Persistence\Database;
 use Casamiza\Infrastructure\Security\PasswordHasher;
 use Casamiza\Kernel;
+use Casamiza\Shared\AfterResponse;
 use Casamiza\Shared\TenantContext;
 use Casamiza\Shared\Transaction;
 use Casamiza\Tests\AppTestCase;
 use Casamiza\Tests\Support\FakeDocumentRenderer;
 use Casamiza\Tests\Support\FixedClock;
+use Casamiza\Tests\Support\ImmediateAfterResponse;
 use Casamiza\Tests\Support\ImmediateTransaction;
 use Casamiza\Tests\Support\InMemoryCompanySettings;
 use Casamiza\Tests\Support\InMemoryDashboard;
@@ -46,6 +49,7 @@ use Casamiza\Tests\Support\InMemoryInvoices;
 use Casamiza\Tests\Support\InMemoryLoginAttempts;
 use Casamiza\Tests\Support\InMemoryLogoStorage;
 use Casamiza\Tests\Support\InMemoryOwners;
+use Casamiza\Tests\Support\InMemoryPasswordResetNotifier;
 use Casamiza\Tests\Support\InMemoryProperties;
 use Casamiza\Tests\Support\InMemoryRefreshTokens;
 use Casamiza\Tests\Support\InMemoryReservations;
@@ -76,6 +80,8 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryLoginAttempts $attempts;
     protected InMemoryUserTokens $userTokens;
     protected InMemoryInvitationNotifier $notifier;
+    protected InMemoryPasswordResetNotifier $resetNotifier;
+    protected ImmediateAfterResponse $afterResponse;
     protected InMemoryIntegrations $integrations;
     protected InMemoryOwners $owners;
     protected InMemoryProperties $properties;
@@ -120,6 +126,8 @@ abstract class AuthTestCase extends AppTestCase
         $this->attempts = new InMemoryLoginAttempts();
         $this->userTokens = new InMemoryUserTokens();
         $this->notifier = new InMemoryInvitationNotifier();
+        $this->resetNotifier = new InMemoryPasswordResetNotifier($context);
+        $this->afterResponse = new ImmediateAfterResponse();
         $this->integrations = new InMemoryIntegrations($context);
         $this->owners = new InMemoryOwners($context);
         $this->properties = new InMemoryProperties($context);
@@ -161,6 +169,8 @@ abstract class AuthTestCase extends AppTestCase
             LoginAttemptRepositoryInterface::class => $this->attempts,
             UserTokenRepositoryInterface::class => $this->userTokens,
             InvitationNotifierInterface::class => $this->notifier,
+            PasswordResetNotifierInterface::class => $this->resetNotifier,
+            AfterResponse::class => $this->afterResponse,
             IntegrationRepositoryInterface::class => $this->integrations,
             OwnerRepositoryInterface::class => $this->owners,
             PropertyRepositoryInterface::class => $this->properties,

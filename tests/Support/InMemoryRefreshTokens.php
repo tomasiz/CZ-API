@@ -40,6 +40,15 @@ final class InMemoryRefreshTokens implements RefreshTokenRepositoryInterface
         return true;
     }
 
+    public function revokeAllForUser(string $tenantId, string $userId, DateTimeImmutable $at): void
+    {
+        foreach ($this->tokens as $id => $t) {
+            if ($t->tenantId === $tenantId && $t->userId === $userId && $t->revokedAt === null) {
+                $this->tokens[$id] = new RefreshToken($t->id, $t->tenantId, $t->userId, $t->familyId, $t->tokenHash, $t->expiresAt, $t->sessionExpiresAt, $t->usedAt, $at);
+            }
+        }
+    }
+
     public function revokeFamily(string $familyId, DateTimeImmutable $at): void
     {
         foreach ($this->tokens as $id => $t) {
