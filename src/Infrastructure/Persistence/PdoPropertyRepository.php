@@ -20,6 +20,13 @@ final class PdoPropertyRepository extends BaseRepository implements PropertyRepo
         return array_map($this->hydrate(...), $this->select(suffix: 'ORDER BY name, id'));
     }
 
+    public function find(string $id): ?Property
+    {
+        $row = $this->findRow($id);
+
+        return $row === null ? null : $this->hydrate($row);
+    }
+
     public function add(Property $property): void
     {
         $this->insertRow(['id' => $property->id, 'guesty_id' => $property->guestyId] + $this->values($property));
@@ -35,6 +42,7 @@ final class PdoPropertyRepository extends BaseRepository implements PropertyRepo
     {
         return [
             'owner_id' => $property->ownerId,
+            'owner_manual' => $property->ownerManual ? 1 : 0,
             'name' => $property->name,
             'address' => $property->address,
             'cleaning_fee' => $property->cleaningFee,
@@ -60,6 +68,7 @@ final class PdoPropertyRepository extends BaseRepository implements PropertyRepo
             cleaningFee: (float) $row['cleaning_fee'],
             linenFee: (float) $row['linen_fee'],
             archivedAt: DbDate::fromDbOrNull($row['archived_at']),
+            ownerManual: (bool) $row['owner_manual'],
         );
     }
 }

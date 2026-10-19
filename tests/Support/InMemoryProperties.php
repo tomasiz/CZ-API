@@ -23,6 +23,11 @@ final class InMemoryProperties implements PropertyRepositoryInterface
         return array_values(array_filter($this->rows, fn(string $key): bool => str_starts_with($key, $prefix), ARRAY_FILTER_USE_KEY));
     }
 
+    public function find(string $id): ?Property
+    {
+        return $this->rows[$this->context->id() . '|' . $id] ?? null;
+    }
+
     public function add(Property $property): void
     {
         $this->rows[$this->context->id() . '|' . $property->id] = $property;

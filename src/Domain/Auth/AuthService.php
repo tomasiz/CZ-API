@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Auth;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Tenant\TenantRepositoryInterface;
 use Casamiza\Domain\User\User;
 use Casamiza\Infrastructure\Security\JwtService;
@@ -27,6 +29,7 @@ final readonly class AuthService
         private ClockInterface $clock,
         private Settings $settings,
         private LoggerInterface $logger,
+        private AuditLogInterface $audit,
     ) {}
 
     public function login(string $email, string $password, string $ip): AuthSession
@@ -40,6 +43,12 @@ final readonly class AuthService
 
         if ($user === null || !$valid) {
             $this->throttle->record($email, $ip, false);
+            // L'e-mail saisi est conservé (pour repérer une faute de frappe ou une attaque), mais seulement quand il désigne un
+            // compte : une adresse inconnue n'appartient à aucun tenant, aucun administrateur ne pourrait la lire.
+            if ($user !== null) {
+                // L'auteur est anonyme (rien ne prouve que ce soit le titulaire) : le compte visé est la cible.
+                $this->audit->recordSystem($user->tenantId, null, AuditAction::LoginFailed, 'user', $user->id, trim($user->firstName . ' ' . $user->lastName), ['email' => $email]);
+            }
             throw new UnauthorizedException('invalid_credentials');
         }
         $this->throttle->record($email, $ip, true);
@@ -50,6 +59,7 @@ final readonly class AuthService
 
         $now = $this->clock->now();
         $this->users->recordLogin($user->tenantId, $user->id, $now);
+        $this->audit->recordAs($user, AuditAction::LoginSucceeded, 'user', $user->id);
 
         $max = $this->settings->auth->sessionMaxDays;
         // Sans plafond (0), la session est limitée à 10 ans : valeur pratique, jamais atteinte.
@@ -80,6 +90,10 @@ final readonly class AuthService
                 'family_id' => $record->familyId,
                 'user_id' => $record->userId,
             ]);
+            $victim = $this->users->findInTenant($record->tenantId, $record->userId);
+            if ($victim !== null) {
+                $this->audit->recordAs($victim, AuditAction::RefreshReuseDetected, 'user', $victim->id);
+            }
             throw new UnauthorizedException('refresh_token_reused');
         }
 
@@ -98,6 +112,10 @@ final readonly class AuthService
         $record = $this->refreshTokens->findByHash(self::hashToken($plainToken));
         if ($record !== null) {
             $this->refreshTokens->revokeFamily($record->familyId, $this->clock->now());
+            $user = $this->users->findInTenant($record->tenantId, $record->userId);
+            if ($user !== null) {
+                $this->audit->recordAs($user, AuditAction::Logout, 'user', $user->id);
+            }
         }
     }
 

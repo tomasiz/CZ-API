@@ -21,6 +21,7 @@ composer dev                # MySQL + API http://localhost:8080 + phpMyAdmin htt
 composer migrate            # Phinx : joue les migrations en attente
 composer seed               # tenant et équipe de dev (mot de passe : casamiza-dev-2026)
 composer console -- tenant:create   # crée un tenant et son premier admin (CLI Symfony Console)
+composer console -- audit:purge     # supprime le journal d'audit de plus de 13 mois (cron)
 composer rollback           # annule la dernière migration
 composer migration:status
 composer test               # PHPUnit (SQLite en mémoire, pas besoin de MySQL)
@@ -66,7 +67,7 @@ Routing. Slim exécute le dernier `add()` en premier.
 **Multi-tenant (critique)**
 - Le `tenant_id` vient **uniquement du JWT** (`TenantContext`), jamais d'un paramètre, d'un en-tête ni du body.
 - Tout repository métier **étend `BaseRepository`** (seules exceptions, avant authentification : `PdoAuthUserRepository`,
-  `PdoRefreshTokenRepository`, `PdoLoginAttemptRepository`, `PdoUserTokenRepository`, `PdoTenantRepository`, tous à requêtes
+  `PdoRefreshTokenRepository`, `PdoLoginAttemptRepository`, `PdoUserTokenRepository`, `PdoTenantRepository`, et `PdoAuditLogRepository` (écriture avec tenant explicite, lecture bornée), tous à requêtes
   explicitement bornées) et n'écrit aucun SQL hors de ses méthodes : c'est elle qui impose
   `tenant_id = :tid`. Pas de SQL métier dans les services ni les contrôleurs.
 - Toute nouvelle table métier : `tenant_id` + index `(tenant_id, …)` + clés étrangères **composites** quand elle

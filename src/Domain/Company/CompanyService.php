@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Company;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Shared\Exception\NotFoundException;
 use Casamiza\Shared\Exception\ValidationException;
 use Casamiza\Shared\TenantContext;
@@ -21,6 +23,7 @@ final readonly class CompanyService
         private CompanySettingsRepositoryInterface $settings,
         private LogoStorageInterface $logos,
         private TenantContext $tenant,
+        private AuditLogInterface $audit,
     ) {}
 
     /** Les réglages du tenant, ou des réglages vides s'il n'a encore rien saisi. */
@@ -31,8 +34,19 @@ final readonly class CompanyService
 
     public function update(CompanySettingsPatch $patch): CompanySettings
     {
-        $settings = $this->get()->patched($patch);
+        $before = $this->get();
+        $settings = $before->patched($patch);
         $this->settings->save($settings);
+
+        // Les noms des champs modifiés seulement : jamais les valeurs (IBAN, SIRET, modèles d'e-mail…).
+        $changed = array_keys(array_filter(
+            get_object_vars($settings),
+            static fn(mixed $value, string $field): bool => $before->{$field} != $value,
+            ARRAY_FILTER_USE_BOTH,
+        ));
+        if ($changed !== []) {
+            $this->audit->record(AuditAction::CompanySettingsUpdated, 'company_settings', null, null, ['fields' => $changed]);
+        }
 
         return $settings;
     }
@@ -59,6 +73,7 @@ final readonly class CompanyService
         $path = $this->logos->put($this->tenant->id(), $png);
         $updated = $current->withLogoPath($path);
         $this->settings->save($updated);
+        $this->audit->record(AuditAction::CompanySettingsUpdated, 'company_settings', null, null, ['fields' => ['logoPath']]);
         if ($current->logoPath !== null && $current->logoPath !== $path) {
             $this->logos->delete($current->logoPath);
         }
@@ -82,6 +97,7 @@ final readonly class CompanyService
         }
         $updated = $current->withLogoPath(null);
         $this->settings->save($updated);
+        $this->audit->record(AuditAction::CompanySettingsUpdated, 'company_settings', null, null, ['fields' => ['logoPath']]);
         $this->logos->delete($current->logoPath);
 
         return $updated;

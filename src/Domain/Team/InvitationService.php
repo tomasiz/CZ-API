@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Team;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\User\PasswordPolicy;
 use Casamiza\Domain\User\Role;
@@ -34,6 +36,7 @@ final readonly class InvitationService
         private Transaction $transaction,
         private TenantContext $tenant,
         private ClockInterface $clock,
+        private AuditLogInterface $audit,
     ) {}
 
     /**
@@ -57,6 +60,7 @@ final readonly class InvitationService
 
         $invitation = $this->transaction->run(function () use ($user): Invitation {
             $this->users->add($user);
+            $this->audit->record(AuditAction::MemberInvited, 'user', $user->id, trim($user->firstName . ' ' . $user->lastName), ['role' => $user->role->value]);
 
             return $this->issueToken($user);
         });
@@ -79,6 +83,7 @@ final readonly class InvitationService
                 throw new ConflictException('member_already_active');
             }
             $this->tokens->invalidateForUser($user->tenantId, $user->id, TokenPurpose::Activation, $this->clock->now());
+            $this->audit->record(AuditAction::InvitationResent, 'user', $user->id, trim($user->firstName . ' ' . $user->lastName));
 
             return $this->issueToken($user);
         });
@@ -132,6 +137,11 @@ final readonly class InvitationService
         }
 
         $this->authUsers->activate($token->tenantId, $token->userId, $this->hasher->hash($password));
+
+        $member = $this->authUsers->findInTenant($token->tenantId, $token->userId);
+        if ($member !== null) {
+            $this->audit->recordAs($member, AuditAction::MemberActivated, 'user', $member->id);
+        }
     }
 
     private function usableToken(string $plainToken): UserToken

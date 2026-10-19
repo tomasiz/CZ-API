@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Team;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\User\Role;
 use Casamiza\Domain\User\User;
 use Casamiza\Domain\User\UserRepositoryInterface;
@@ -19,6 +21,7 @@ final readonly class TeamService
     public function __construct(
         private UserRepositoryInterface $users,
         private Transaction $transaction,
+        private AuditLogInterface $audit,
     ) {}
 
     /** @return list<User> */
@@ -37,6 +40,7 @@ final readonly class TeamService
                     $this->assertAnotherActiveAdminExists($user);
                 }
                 $this->users->updateRole($id, $role);
+                $this->audit->record(AuditAction::MemberRoleChanged, 'user', $user->id, self::nameOf($user), ['from' => $user->role->value, 'to' => $role->value]);
                 $user = $user->withRole($role);
             }
             if ($firstName !== null || $lastName !== null) {
@@ -60,7 +64,13 @@ final readonly class TeamService
                 $this->assertAnotherActiveAdminExists($user);
             }
             $this->users->delete($id);
+            $this->audit->record(AuditAction::MemberRemoved, 'user', $user->id, self::nameOf($user), ['role' => $user->role->value]);
         });
+    }
+
+    private static function nameOf(User $user): string
+    {
+        return trim($user->firstName . ' ' . $user->lastName);
     }
 
     /** Appelé dans une transaction : le verrou posé sur les administrateurs évite que deux requêtes les retirent ensemble. */

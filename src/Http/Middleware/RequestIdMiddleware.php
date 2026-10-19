@@ -22,8 +22,11 @@ final readonly class RequestIdMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $this->tenant->reset();
+        $this->context->reset();
         $requestId = bin2hex(random_bytes(8));
         $this->context->setRequestId($requestId);
+        $ip = $request->getServerParams()['REMOTE_ADDR'] ?? null;
+        $this->context->setIp(is_string($ip) && $ip !== '' ? $ip : null);
 
         return $handler->handle($request->withAttribute('request_id', $requestId))
             ->withHeader('X-Request-Id', $requestId);

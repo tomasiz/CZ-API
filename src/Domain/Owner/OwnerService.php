@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Owner;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Property\Property;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Infrastructure\Security\Encryptor;
 use Casamiza\Shared\Exception\NotFoundException;
+use Casamiza\Shared\Transaction;
 
 /** Propriétaires du tenant courant : lecture (alimentée par la synchronisation Guesty) et saisies locales. */
 final readonly class OwnerService
@@ -16,6 +19,8 @@ final readonly class OwnerService
         private OwnerRepositoryInterface $owners,
         private PropertyRepositoryInterface $properties,
         private Encryptor $encryptor,
+        private Transaction $transaction,
+        private AuditLogInterface $audit,
     ) {}
 
     /**
@@ -46,11 +51,18 @@ final readonly class OwnerService
     public function update(string $id, ?string $companyName, ?string $siret, ?string $stripeKey): array
     {
         $owner = $this->owners->find($id) ?? throw new NotFoundException('owner_not_found');
+        $before = $owner;
         $owner = $owner->withLocalFields($companyName, $siret);
         if ($stripeKey !== null) {
             $owner = $owner->withStripeSecret($this->encryptor->encrypt($stripeKey));
         }
-        $this->owners->updateLocal($owner);
+        $this->transaction->run(function () use ($before, $owner, $stripeKey): void {
+            $this->owners->updateLocal($owner);
+            // Jamais la clé ni le SIRET : seulement ce qui a changé.
+            if ($stripeKey !== null) {
+                $this->audit->record(AuditAction::OwnerStripeKeySet, 'owner', $owner->id, $owner->name, ['replaced' => $before->stripeSecretEncrypted !== null]);
+            }
+        });
 
         return $this->row($owner);
     }
@@ -62,7 +74,10 @@ final readonly class OwnerService
     public function removeStripeKey(string $id): array
     {
         $owner = ($this->owners->find($id) ?? throw new NotFoundException('owner_not_found'))->withStripeSecret(null);
-        $this->owners->updateLocal($owner);
+        $this->transaction->run(function () use ($owner): void {
+            $this->owners->updateLocal($owner);
+            $this->audit->record(AuditAction::OwnerStripeKeyRemoved, 'owner', $owner->id, $owner->name);
+        });
 
         return $this->row($owner);
     }

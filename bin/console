@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Casamiza\Console\AuditPurgeCommand;
 use Casamiza\Console\GuestySourcesCommand;
 use Casamiza\Console\ImportFacturizaDirectoryCommand;
 use Casamiza\Console\ImportFacturizaInvoicesCommand;
@@ -26,6 +27,7 @@ $container = Kernel::createContainer(Settings::fromEnv($_ENV + $_SERVER, $root))
 $application = new Application('Casamiza', '1.0');
 $application->addCommand($container->get(TenantCreateCommand::class));
 $application->addCommand($container->get(UserResetPasswordCommand::class));
+$application->addCommand($container->get(AuditPurgeCommand::class));
 $application->addCommand($container->get(SyncGuestyCommand::class));
 $application->addCommand($container->get(SyncReservationsCommand::class));
 $application->addCommand($container->get(GuestySourcesCommand::class));

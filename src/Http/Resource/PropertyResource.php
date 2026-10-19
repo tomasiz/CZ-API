@@ -18,6 +18,8 @@ final class PropertyResource
             'ownerId' => $property->ownerId,
             'ownerName' => $ownerName,
             'ownerActive' => $ownerActive,
+            // Vrai quand un administrateur a choisi le propriétaire : la synchronisation Guesty n'y touche plus.
+            'ownerManual' => $property->ownerManual,
             'name' => $property->name,
             'address' => $property->address,
             'cleaningFee' => $property->cleaningFee,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Auth;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Team\TokenPurpose;
 use Casamiza\Domain\Team\UserToken;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
@@ -42,6 +44,7 @@ final readonly class PasswordResetService
         private Transaction $transaction,
         private TenantContext $tenant,
         private ClockInterface $clock,
+        private AuditLogInterface $audit,
     ) {}
 
     /**
@@ -92,6 +95,7 @@ final readonly class PasswordResetService
             // Un autre lien demandé entre-temps ne doit plus servir, et toute session ouverte avec l'ancien mot de passe prend fin.
             $this->tokens->invalidateForUser($user->tenantId, $user->id, TokenPurpose::PasswordReset, $now);
             $this->refreshTokens->revokeAllForUser($user->tenantId, $user->id, $now);
+            $this->audit->recordAs($user, AuditAction::PasswordResetCompleted, 'user', $user->id);
         });
     }
 
@@ -116,6 +120,7 @@ final readonly class PasswordResetService
             $this->users->updatePasswordHash($user->tenantId, $user->id, $this->hasher->hash($password));
             $this->tokens->invalidateForUser($user->tenantId, $user->id, TokenPurpose::PasswordReset, $now);
             $this->refreshTokens->revokeAllForUser($user->tenantId, $user->id, $now);
+            $this->audit->recordSystem($user->tenantId, 'cli', AuditAction::PasswordResetByCli, 'user', $user->id, trim($user->firstName . ' ' . $user->lastName));
         });
 
         return $user;

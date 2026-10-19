@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Casamiza\Tests\Auth;
 
+use Casamiza\Domain\Audit\AuditLogRepositoryInterface;
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\PasswordResetNotifierInterface;
@@ -39,6 +40,7 @@ use Casamiza\Tests\Support\FakeDocumentRenderer;
 use Casamiza\Tests\Support\FixedClock;
 use Casamiza\Tests\Support\ImmediateAfterResponse;
 use Casamiza\Tests\Support\ImmediateTransaction;
+use Casamiza\Tests\Support\InMemoryAuditLog;
 use Casamiza\Tests\Support\InMemoryCompanySettings;
 use Casamiza\Tests\Support\InMemoryDashboard;
 use Casamiza\Tests\Support\InMemoryExtras;
@@ -79,6 +81,7 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryRefreshTokens $refreshTokens;
     protected InMemoryLoginAttempts $attempts;
     protected InMemoryUserTokens $userTokens;
+    protected InMemoryAuditLog $audit;
     protected InMemoryInvitationNotifier $notifier;
     protected InMemoryPasswordResetNotifier $resetNotifier;
     protected ImmediateAfterResponse $afterResponse;
@@ -125,6 +128,7 @@ abstract class AuthTestCase extends AppTestCase
         $this->refreshTokens = new InMemoryRefreshTokens();
         $this->attempts = new InMemoryLoginAttempts();
         $this->userTokens = new InMemoryUserTokens();
+        $this->audit = new InMemoryAuditLog($context);
         $this->notifier = new InMemoryInvitationNotifier();
         $this->resetNotifier = new InMemoryPasswordResetNotifier($context);
         $this->afterResponse = new ImmediateAfterResponse();
@@ -168,6 +172,7 @@ abstract class AuthTestCase extends AppTestCase
             RefreshTokenRepositoryInterface::class => $this->refreshTokens,
             LoginAttemptRepositoryInterface::class => $this->attempts,
             UserTokenRepositoryInterface::class => $this->userTokens,
+            AuditLogRepositoryInterface::class => $this->audit,
             InvitationNotifierInterface::class => $this->notifier,
             PasswordResetNotifierInterface::class => $this->resetNotifier,
             AfterResponse::class => $this->afterResponse,

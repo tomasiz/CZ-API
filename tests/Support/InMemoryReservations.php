@@ -133,6 +133,19 @@ final class InMemoryReservations implements ReservationRepositoryInterface
         }
     }
 
+    public function reassignProperty(string $propertyId, ?string $ownerId): int
+    {
+        $moved = 0;
+        foreach ($this->rows as $key => $reservation) {
+            if (str_starts_with($key, $this->context->id() . '|') && $reservation->propertyId === $propertyId && $reservation->ownerId !== $ownerId) {
+                $this->rows[$key] = $reservation->withOwner($ownerId);
+                $moved++;
+            }
+        }
+
+        return $moved;
+    }
+
     /**
      * @param callable(Reservation): bool $keep
      * @return list<Reservation>

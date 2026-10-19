@@ -119,6 +119,12 @@ final class InvoiceTest extends AuthTestCase
         self::assertSame([250.48, 50.1, 300.58], [$invoice['amountHt'], $invoice['vat'], $invoice['amountTtc']]);
         self::assertSame(['unpaid', 'casamiza'], [$invoice['status'], $invoice['source']]);
 
+        // L'émission est tracée, avec l'administrateur qui l'a faite.
+        $created = $this->audit->of(\Casamiza\Domain\Audit\AuditAction::InvoiceCreated);
+        self::assertCount(1, $created);
+        self::assertSame(['user-admin', 'FZ0000001', $invoice['id'], 'tenant-a'], [$created[0]->actorUserId, $created[0]->targetLabel, $created[0]->targetId, $created[0]->tenantId]);
+        self::assertSame('2026-09', $created[0]->context['month']);
+
         $this->context->reset();
         $this->context->set('tenant-a');
         $key = 'tenant-a|' . $invoice['id'];
@@ -489,6 +495,9 @@ final class InvoiceTest extends AuthTestCase
         // Sans jour : aujourd'hui (7 octobre 2026), le jour de la facture.
         $paid = $this->data($this->call('PATCH', $path, ['status' => 'paid', 'method' => 'wire']));
         self::assertSame(['paid', 'wire', '2026-10-07'], [$paid['status'], $paid['paymentMethod'], $paid['paymentDate']]);
+        $payment = $this->audit->of(\Casamiza\Domain\Audit\AuditAction::InvoicePaymentUpdated);
+        self::assertCount(1, $payment);
+        self::assertSame(['unpaid', 'paid', 'wire'], [$payment[0]->context['from'], $payment[0]->context['to'], $payment[0]->context['method']]);
 
         // Une facture payée n'est jamais en retard, même longtemps après son échéance.
         $this->clock->advance('+3 months');

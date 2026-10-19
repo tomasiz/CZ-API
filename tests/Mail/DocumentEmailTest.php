@@ -227,6 +227,23 @@ final class DocumentEmailTest extends AuthTestCase
             ],
             $payload['attachments'],
         );
+
+        // L'envoi est tracé (quoi, de quel mois), sans l'adresse du destinataire ni le message.
+        $sent = $this->audit->of(\Casamiza\Domain\Audit\AuditAction::InvoiceEmailed);
+        self::assertCount(1, $sent);
+        self::assertSame(['invoice', 'FZ0000001', 'user-admin'], [$sent[0]->targetType, $sent[0]->targetLabel, $sent[0]->actorUserId]);
+        self::assertSame(['invoice', 'recap'], $sent[0]->context['documents']);
+        self::assertStringNotContainsString('alice.martin@example.test', json_encode($sent[0], JSON_THROW_ON_ERROR));
+    }
+
+    public function testRefusedSendsAreNotTraced(): void
+    {
+        $this->issueInvoice();
+        $this->configureCompany();
+
+        $this->call('POST', '/owners/owner-1/email', $this->sendBody());
+
+        self::assertSame([], $this->audit->of(\Casamiza\Domain\Audit\AuditAction::InvoiceEmailed));
     }
 
     public function testACopyGoesToTheCompanyContactAsBlindCopy(): void

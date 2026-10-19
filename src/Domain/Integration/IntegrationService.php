@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Integration;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Infrastructure\Security\Encryptor;
 use Casamiza\Shared\Exception\NotFoundException;
 use Casamiza\Shared\Exception\ValidationException;
@@ -24,6 +26,7 @@ final readonly class IntegrationService
         private Encryptor $encryptor,
         private Transaction $transaction,
         private ClockInterface $clock,
+        private AuditLogInterface $audit,
     ) {}
 
     /** @return list<IntegrationEntry> tous les services pris en charge, configurés ou non (aucun appel au tiers) */
@@ -95,6 +98,12 @@ final readonly class IntegrationService
                 configuredAt: $existing->configuredAt ?? $now,
             );
             $this->integrations->save($integration);
+            // Seulement « les secrets ont-ils changé », jamais leur valeur.
+            $this->audit->record(AuditAction::IntegrationSaved, 'integration', $provider->provider()->value, null, [
+                'provider' => $provider->provider()->value,
+                'created' => $existing === null,
+                'secretsChanged' => $secrets !== $previousSecrets,
+            ]);
 
             return new IntegrationEntry($provider, $integration);
         });
@@ -171,7 +180,11 @@ final readonly class IntegrationService
 
     public function remove(string $name): void
     {
-        $this->integrations->delete($this->providers->get($name)->provider());
+        $provider = $this->providers->get($name)->provider();
+        $this->transaction->run(function () use ($provider): void {
+            $this->integrations->delete($provider);
+            $this->audit->record(AuditAction::IntegrationRemoved, 'integration', $provider->value, null, ['provider' => $provider->value]);
+        });
     }
 
     /**

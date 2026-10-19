@@ -323,6 +323,41 @@ final class GuestySyncTest extends AuthTestCase
         self::assertSame(25.0, $property->linenFee ?? null);
     }
 
+    public function testAnAssignmentChosenByAnAdminIsNotOverwrittenByTheSync(): void
+    {
+        $this->connect();
+        // Guesty rattache le logement au premier propriétaire (portail unique pour deux entités à facturer).
+        $this->queue([self::ok(self::page([self::owner('O1', 'Dauphiné'), self::owner('O2', 'Trianon')], 2))], [self::ok(self::page([self::listing('L1', 'Trianon', 'O1')], 1))]);
+        $this->sync();
+        $first = $this->properties->byGuestyId('tenant-a', 'L1');
+        $o1 = $this->owners->byGuestyId('tenant-a', 'O1');
+        $o2 = $this->owners->byGuestyId('tenant-a', 'O2');
+        self::assertNotNull($first);
+        self::assertNotNull($o1);
+        self::assertNotNull($o2);
+        // Affectation initiale : celle de Guesty, non manuelle.
+        self::assertSame($o1->id, $first->ownerId);
+        self::assertFalse($first->ownerManual);
+
+        // Tant que personne n'a choisi, la synchro suit Guesty.
+        $this->queue([self::ok(self::page([self::owner('O1', 'Dauphiné'), self::owner('O2', 'Trianon')], 2))], [self::ok(self::page([self::listing('L1', 'Trianon', 'O2')], 1))]);
+        $this->sync();
+        self::assertSame($o2->id, $this->properties->byGuestyId('tenant-a', 'L1')->ownerId ?? 'x');
+
+        // Un administrateur choisit : Guesty ne reprend plus la main, mais le reste du logement suit toujours Guesty.
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $this->properties->update($first->assignedTo($o1->id));
+        $this->context->reset();
+        $this->queue([self::ok(self::page([self::owner('O1', 'Dauphiné'), self::owner('O2', 'Trianon')], 2))], [self::ok(self::page([self::listing('L1', 'Trianon rénové', 'O2', fee: 90)], 1))]);
+        $this->sync();
+        $kept = $this->properties->byGuestyId('tenant-a', 'L1');
+        self::assertSame($o1->id, $kept->ownerId ?? 'x');
+        self::assertTrue($kept->ownerManual ?? false);
+        self::assertSame('Trianon rénové', $kept->name ?? null);
+        self::assertSame(90.0, $kept->cleaningFee ?? null);
+    }
+
     public function testFeesComeFromTheCustomFieldsAndDefaultToZero(): void
     {
         $this->connect();

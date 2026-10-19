@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Invoice;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Owner\Owner;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
@@ -51,6 +53,7 @@ final readonly class InvoiceService
         private Transaction $transaction,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private AuditLogInterface $audit,
     ) {}
 
     /**
@@ -80,12 +83,20 @@ final readonly class InvoiceService
 
             // Une facture sans son PDF n'existe pas : si la fabrication échoue, tout est annulé, numéro compris (pas de trou).
             try {
-                return $this->documents->ensure($invoice);
+                $invoice = $this->documents->ensure($invoice);
             } catch (Throwable $error) {
                 $this->logger->error('Invoice documents could not be generated.', ['invoice' => $invoice->id, 'exception' => $error]);
 
                 throw new ServiceUnavailableException('invoice_pdf_failed');
             }
+            $this->audit->record(AuditAction::InvoiceCreated, 'invoice', $invoice->id, Invoice::formatNumber($invoice->number), [
+                'ownerId' => $owner->id,
+                'owner' => $owner->name,
+                'month' => $month,
+                'amountTtc' => $invoice->amountTtc,
+            ]);
+
+            return $invoice;
         });
 
         return $invoice;
@@ -247,7 +258,16 @@ final readonly class InvoiceService
         }
 
         $updated = $status === PaymentStatus::Paid ? $invoice->withPayment($status, $method, $date) : $invoice->withPayment($status, null, null);
-        $this->invoices->updatePayment($updated);
+        $this->transaction->run(function () use ($updated, $invoice): void {
+            $this->invoices->updatePayment($updated);
+            $this->audit->record(AuditAction::InvoicePaymentUpdated, 'invoice', $updated->id, Invoice::formatNumber($updated->number), [
+                'ownerId' => $updated->ownerId,
+                'month' => $updated->month,
+                'from' => $invoice->paymentStatus->value,
+                'to' => $updated->paymentStatus->value,
+                'method' => $updated->paymentMethod?->value,
+            ]);
+        });
 
         return $updated;
     }

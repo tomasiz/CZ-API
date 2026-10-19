@@ -39,7 +39,7 @@ final class PdoSyncRepositoriesTest extends AppTestCase
     {
         $pdo = new PDO('sqlite::memory:', options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
         $pdo->exec("CREATE TABLE owners (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, guesty_id TEXT NOT NULL, name TEXT NOT NULL, first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '', type TEXT NOT NULL DEFAULT 'individual', company_name TEXT NOT NULL DEFAULT '', siret TEXT NOT NULL DEFAULT '', commission NUMERIC NULL, guesty_active INTEGER NOT NULL DEFAULT 1, stripe_secret_encrypted TEXT NULL, archived_at TEXT NULL, UNIQUE (tenant_id, guesty_id))");
-        $pdo->exec("CREATE TABLE properties (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, guesty_id TEXT NOT NULL, owner_id TEXT NULL, name TEXT NOT NULL, address TEXT NOT NULL DEFAULT '', cleaning_fee NUMERIC NOT NULL DEFAULT 0, linen_fee NUMERIC NOT NULL DEFAULT 0, archived_at TEXT NULL, UNIQUE (tenant_id, guesty_id))");
+        $pdo->exec("CREATE TABLE properties (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, guesty_id TEXT NOT NULL, owner_id TEXT NULL, owner_manual INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL, address TEXT NOT NULL DEFAULT '', cleaning_fee NUMERIC NOT NULL DEFAULT 0, linen_fee NUMERIC NOT NULL DEFAULT 0, archived_at TEXT NULL, UNIQUE (tenant_id, guesty_id))");
         $this->database = new Database($this->settings(), $pdo);
     }
 
@@ -158,6 +158,13 @@ final class PdoSyncRepositoriesTest extends AppTestCase
 
         $b->update(new Property('prop-a', 'l-1', null, 'Pirate', '', 0.0, 0.0, null));
         self::assertSame('Villa', $a->all()[1]->name);
+
+        // L'affectation manuelle est conservée, et find() est borné au tenant.
+        $a->update($rows[1]->assignedTo('owner-z'));
+        self::assertTrue($a->find('prop-a')?->ownerManual);
+        self::assertSame('owner-z', $a->find('prop-a')->ownerId);
+        self::assertFalse($a->find('prop-a2')?->ownerManual);
+        self::assertNull($b->find('prop-a'));
     }
 
     /** @param non-empty-string $id */
@@ -242,6 +249,14 @@ final class PdoSyncRepositoriesTest extends AppTestCase
         $since = $a->allCheckingOutSince($from);
         self::assertCount(3, $since);
         self::assertTrue($a->findByGuestyId('r-2')?->isArchived());
+
+        // Réaffectation d'un logement : seules les réservations du tenant courant changent, archivées comprises.
+        self::assertSame(3, $a->reassignProperty('prop-a', 'owner-z'));
+        self::assertSame(0, $a->reassignProperty('prop-a', 'owner-z'));
+        self::assertSame('owner-z', $a->findByGuestyId('r-2')->ownerId);
+        self::assertSame('owner-a', $b->findByGuestyId('r-1')?->ownerId);
+        self::assertSame(3, $a->reassignProperty('prop-a', null));
+        self::assertNull($a->findByGuestyId('r-1')?->ownerId);
     }
 
     public function testExtrasRoundTripAreSoftDeletedAndIsolatedByTenant(): void

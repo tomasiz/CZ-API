@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Casamiza\Domain\User\Role;
+use Casamiza\Http\Controller\AuditLogController;
 use Casamiza\Http\Controller\AuthController;
 use Casamiza\Http\Controller\CompanyController;
 use Casamiza\Http\Controller\DashboardController;
@@ -15,6 +16,7 @@ use Casamiza\Http\Controller\OwnerController;
 use Casamiza\Http\Controller\OwnerEmailController;
 use Casamiza\Http\Controller\PropertyController;
 use Casamiza\Http\Controller\ReservationController;
+use Casamiza\Http\Controller\SearchController;
 use Casamiza\Http\Controller\StatementController;
 use Casamiza\Http\Controller\SyncController;
 use Casamiza\Http\Controller\TeamController;
@@ -63,6 +65,9 @@ return static function (App $app): void {
             // Réservations (importées de Guesty, montants calculés) : tous les membres ; recherche, filtres et pagination côté API.
             $api->get('/reservations', [ReservationController::class, 'index']);
 
+            // Recherche globale (barre du haut) : tous les membres ; les factures n'y figurent que pour un administrateur.
+            $api->get('/search', [SearchController::class, 'index']);
+
             // Suivi mensuel d'un propriétaire : prestations supplémentaires et statut de facturation, tous les membres.
             $api->get('/owners/{ownerId}/extras', [ExtraController::class, 'index']);
             $api->post('/owners/{ownerId}/extras', [ExtraController::class, 'create']);
@@ -82,6 +87,9 @@ return static function (App $app): void {
                 $invoices->get('/{id}/json', [InvoiceController::class, 'snapshot']);
             })->add(new RoleMiddleware(Role::Admin));
 
+            // Journal d'audit : administrateurs seulement.
+            $api->get('/audit-log', [AuditLogController::class, 'index'])->add(new RoleMiddleware(Role::Admin));
+
             // Tableau de bord : chiffres figés des factures, administrateurs seulement.
             $api->get('/dashboard', [DashboardController::class, 'index'])->add(new RoleMiddleware(Role::Admin));
 
@@ -95,6 +103,9 @@ return static function (App $app): void {
                 $owners->post('/{id}/email', [OwnerEmailController::class, 'send']);
                 $owners->delete('/{id}/stripe-key', [OwnerController::class, 'removeStripeKey']);
             })->add(new RoleMiddleware(Role::Admin));
+
+            // Affectation d'un logement à un propriétaire de Casamiza (deux entités à facturer pour un même portail Guesty) : administrateurs seulement.
+            $api->patch('/properties/{id}', [PropertyController::class, 'update'])->add(new RoleMiddleware(Role::Admin));
 
             // Identité de l'entreprise (mentions légales, contact, modèles d'e-mail, logo) : administrateurs seulement.
             $api->group('/settings/company', function (RouteCollectorProxy $company): void {

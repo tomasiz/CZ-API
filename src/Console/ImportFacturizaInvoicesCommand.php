@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Console;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Import\FacturizaInvoiceImporter;
 use Casamiza\Domain\Tenant\TenantRepositoryInterface;
 use Casamiza\Infrastructure\Import\FacturizaDump;
@@ -32,6 +34,7 @@ final class ImportFacturizaInvoicesCommand extends Command
         private readonly TenantRepositoryInterface $tenants,
         private readonly TenantContext $context,
         private readonly FacturizaInvoiceImporter $importer,
+        private readonly AuditLogInterface $audit,
     ) {
         parent::__construct();
     }
@@ -86,6 +89,14 @@ final class ImportFacturizaInvoicesCommand extends Command
             $output->writeln('<error>VÉRIFICATIONS EN ÉCHEC : rien n\'a été écrit.</error>');
             $this->list($output, 'Erreurs', $report->errors);
         } else {
+            if ($report->applied) {
+                $this->audit->recordSystem($tenantId, 'cli', AuditAction::InvoicesImported, 'tenant', $tenantId, null, [
+                    'invoices' => $report->invoices,
+                    'lines' => $report->lines,
+                    'extras' => $report->extras,
+                    'nextNumber' => $report->nextNumber,
+                ]);
+            }
             $output->writeln($report->applied ? '<info>Import appliqué.</info>' : '<comment>SIMULATION : rien n\'a été écrit (ajouter --apply).</comment>');
         }
         $output->writeln(sprintf(

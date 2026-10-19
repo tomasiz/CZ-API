@@ -10,6 +10,8 @@ interface PropertyRepositoryInterface
     /** @return list<Property> tous, archivés compris */
     public function all(): array;
 
+    public function find(string $id): ?Property;
+
     public function add(Property $property): void;
 
     public function update(Property $property): void;

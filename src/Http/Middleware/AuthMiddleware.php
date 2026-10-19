@@ -7,6 +7,7 @@ namespace Casamiza\Http\Middleware;
 use Casamiza\Domain\Auth\AccessClaims;
 use Casamiza\Infrastructure\Security\JwtService;
 use Casamiza\Shared\Exception\UnauthorizedException;
+use Casamiza\Shared\RequestContext;
 use Casamiza\Shared\TenantContext;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,7 +20,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final readonly class AuthMiddleware implements MiddlewareInterface
 {
-    public function __construct(private JwtService $jwt, private TenantContext $tenant) {}
+    public function __construct(private JwtService $jwt, private TenantContext $tenant, private RequestContext $request) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
@@ -30,6 +31,7 @@ final readonly class AuthMiddleware implements MiddlewareInterface
 
         $claims = $this->jwt->parse($matches[1]);
         $this->tenant->set($claims->tenantId);
+        $this->request->setActorId($claims->userId);
 
         return $handler->handle($request->withAttribute(AccessClaims::class, $claims));
     }

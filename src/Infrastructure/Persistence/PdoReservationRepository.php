@@ -221,6 +221,19 @@ final class PdoReservationRepository extends BaseRepository implements Reservati
         });
     }
 
+    public function reassignProperty(string $propertyId, ?string $ownerId): int
+    {
+        // Seules les réservations qui changent de propriétaire sont écrites (et comptées).
+        $changed = $ownerId === null ? 'owner_id IS NOT NULL' : '(owner_id IS NULL OR owner_id <> :owner_check)';
+        $statement = $this->pdo()->prepare(
+            "UPDATE reservations SET owner_id = :owner_id WHERE tenant_id = :__tenant AND property_id = :property_id AND {$changed}",
+        );
+        $params = ['owner_id' => $ownerId, 'property_id' => $propertyId, '__tenant' => $this->tenant->id()];
+        $statement->execute($ownerId === null ? $params : $params + ['owner_check' => $ownerId]);
+
+        return $statement->rowCount();
+    }
+
     /** @return array<string, mixed> */
     private function values(Reservation $r): array
     {

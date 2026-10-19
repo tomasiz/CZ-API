@@ -38,4 +38,11 @@ interface ReservationRepositoryInterface
 
     /** Réécrit la réservation et remplace ses signalements. */
     public function update(Reservation $reservation): void;
+
+    /**
+     * Rattache à `$ownerId` (null = aucun) toutes les réservations du logement, archivées comprises.
+     *
+     * @return int nombre de réservations déplacées
+     */
+    public function reassignProperty(string $propertyId, ?string $ownerId): int;
 }

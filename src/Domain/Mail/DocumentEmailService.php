@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Mail;
 
+use Casamiza\Domain\Audit\AuditAction;
+use Casamiza\Domain\Audit\AuditLogInterface;
 use Casamiza\Domain\Company\CompanySettings;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Invoice\Invoice;
@@ -34,6 +36,7 @@ final readonly class DocumentEmailService
         private CompanySettingsRepositoryInterface $company,
         private MailerInterface $mailer,
         private LoggerInterface $logger,
+        private AuditLogInterface $audit,
     ) {}
 
     /**
@@ -119,6 +122,14 @@ final readonly class DocumentEmailService
             $attachments,
             $copyToMe ? $settings->contactEmail : null,
         ));
+
+        // Dans le journal d'audit : quoi et à qui (le propriétaire), jamais l'adresse ni le contenu.
+        $this->audit->record(AuditAction::InvoiceEmailed, $invoice === null ? 'owner' : 'invoice', $invoice === null ? $owner->id : $invoice->id, $invoice === null ? $owner->name : Invoice::formatNumber($invoice->number), [
+            'ownerId' => $owner->id,
+            'owner' => $owner->name,
+            'month' => $month,
+            'documents' => array_map(static fn(EmailDocument $d): string => $d->value, $documents),
+        ]);
 
         // Ni adresse ni contenu dans les logs : identifiants seulement.
         $this->logger->info('Document e-mail sent.', [

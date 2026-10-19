@@ -23,6 +23,8 @@ final readonly class Property
         public float $cleaningFee,
         public float $linenFee,
         public ?DateTimeImmutable $archivedAt,
+        /** Vrai quand un administrateur a choisi le propriétaire : la synchronisation n'y touche plus. */
+        public bool $ownerManual = false,
     ) {}
 
     /** @param non-empty-string $id */
@@ -31,23 +33,31 @@ final readonly class Property
         return new self($id, $guesty->guestyId, $ownerId, $guesty->name, $guesty->address, $guesty->cleaningFee, $guesty->linenFee, $guesty->active ? null : $now);
     }
 
+    /** Le propriétaire de Guesty ne remplace celui de Casamiza que tant qu'aucun administrateur n'a choisi. */
     public function mergedWith(GuestyListing $guesty, ?string $ownerId, DateTimeImmutable $now): self
     {
         return new self(
             $this->id,
             $this->guestyId,
-            $ownerId,
+            $this->ownerManual ? $this->ownerId : $ownerId,
             $guesty->name,
             $guesty->address,
             $guesty->cleaningFee,
             $guesty->linenFee,
             $guesty->active ? null : ($this->archivedAt ?? $now),
+            $this->ownerManual,
         );
+    }
+
+    /** Affectation par un administrateur (`null` = aucun propriétaire) : à partir de là, la synchronisation ne la change plus. */
+    public function assignedTo(?string $ownerId): self
+    {
+        return new self($this->id, $this->guestyId, $ownerId, $this->name, $this->address, $this->cleaningFee, $this->linenFee, $this->archivedAt, true);
     }
 
     public function archived(DateTimeImmutable $now): self
     {
-        return new self($this->id, $this->guestyId, $this->ownerId, $this->name, $this->address, $this->cleaningFee, $this->linenFee, $this->archivedAt ?? $now);
+        return new self($this->id, $this->guestyId, $this->ownerId, $this->name, $this->address, $this->cleaningFee, $this->linenFee, $this->archivedAt ?? $now, $this->ownerManual);
     }
 
     public function isArchived(): bool
@@ -64,6 +74,6 @@ final readonly class Property
 
     private function withoutArchiveDate(): self
     {
-        return new self($this->id, $this->guestyId, $this->ownerId, $this->name, $this->address, $this->cleaningFee, $this->linenFee, null);
+        return new self($this->id, $this->guestyId, $this->ownerId, $this->name, $this->address, $this->cleaningFee, $this->linenFee, null, $this->ownerManual);
     }
 }

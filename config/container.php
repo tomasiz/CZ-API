@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Casamiza\Domain\Audit\AuditLog;
+use Casamiza\Domain\Audit\AuditLogInterface;
+use Casamiza\Domain\Audit\AuditLogRepositoryInterface;
 use Casamiza\Domain\Auth\AuthUserRepositoryInterface;
 use Casamiza\Domain\Auth\LoginAttemptRepositoryInterface;
 use Casamiza\Domain\Auth\PasswordResetNotifierInterface;
@@ -38,6 +41,7 @@ use Casamiza\Infrastructure\Mail\MailerSendMailer;
 use Casamiza\Infrastructure\Mail\MailerSendPasswordResetNotifier;
 use Casamiza\Infrastructure\Pdf\PdfDocumentRenderer;
 use Casamiza\Infrastructure\Pdf\PdfFontDirectory;
+use Casamiza\Infrastructure\Persistence\PdoAuditLogRepository;
 use Casamiza\Infrastructure\Persistence\PdoAuthUserRepository;
 use Casamiza\Infrastructure\Persistence\PdoCompanySettingsRepository;
 use Casamiza\Infrastructure\Persistence\PdoDashboardRepository;
@@ -83,6 +87,8 @@ return [
     ResponseFactoryInterface::class => get(ResponseFactory::class),
     ClockInterface::class => get(SystemClock::class),
 
+    AuditLogRepositoryInterface::class => get(PdoAuditLogRepository::class),
+    AuditLogInterface::class => get(AuditLog::class),
     AuthUserRepositoryInterface::class => get(PdoAuthUserRepository::class),
     RefreshTokenRepositoryInterface::class => get(PdoRefreshTokenRepository::class),
     LoginAttemptRepositoryInterface::class => get(PdoLoginAttemptRepository::class),

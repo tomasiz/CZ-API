@@ -167,6 +167,11 @@ final readonly class Reservation
         return $this->with(['archivedAt' => $this->archivedAt ?? $now]);
     }
 
+    public function withOwner(?string $ownerId): self
+    {
+        return $this->with(['ownerId' => $ownerId]);
+    }
+
     public function isArchived(): bool
     {
         return $this->archivedAt !== null;
