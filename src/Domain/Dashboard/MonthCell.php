@@ -10,16 +10,18 @@ final class MonthCell
     private int $reservations = 0;
     private int $nights = 0;
     private int $payout = 0;
+    private int $ownerNet = 0;
     /** @var array<string, array{ht: int, ttc: int}> par catégorie */
     private array $billed = [];
 
     public function __construct(private readonly ?string $propertyId, private readonly string $month) {}
 
-    public function addActivity(int $reservations, int $nights, int $payoutCents): void
+    public function addActivity(int $reservations, int $nights, int $payoutCents, int $ownerNetCents): void
     {
         $this->reservations += $reservations;
         $this->nights += $nights;
         $this->payout += $payoutCents;
+        $this->ownerNet += $ownerNetCents;
     }
 
     public function addBilled(BilledCategory $category, int $ttcCents, int $htCents): void
@@ -38,6 +40,7 @@ final class MonthCell
             $this->reservations,
             $this->nights,
             $this->payout,
+            $this->ownerNet,
             $amount(BilledCategory::Concierge, 'ht'),
             $amount(BilledCategory::Concierge, 'ttc'),
             $amount(BilledCategory::Linen, 'ht'),

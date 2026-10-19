@@ -27,7 +27,8 @@ final class PdoDashboardRepository extends BaseRepository implements DashboardRe
     {
         $rows = $this->fetch(
             'SELECT r.invoice_id, r.property_id, r.month, COUNT(*) AS reservations, CAST(SUM(r.nights) AS SIGNED) AS nights,
-                    CAST(ROUND(SUM(r.total_payout) * 100) AS SIGNED) AS payout
+                    CAST(ROUND(SUM(r.total_payout) * 100) AS SIGNED) AS payout,
+                    CAST(ROUND(SUM(r.net_owner_revenue) * 100) AS SIGNED) AS owner_net
              FROM invoice_reservations r
              JOIN invoices i ON i.tenant_id = r.tenant_id AND i.id = r.invoice_id
              WHERE r.tenant_id = :tenant AND i.cancelled_at IS NULL
@@ -41,6 +42,7 @@ final class PdoDashboardRepository extends BaseRepository implements DashboardRe
             (int) $row['reservations'],
             (int) $row['nights'],
             (int) $row['payout'],
+            (int) $row['owner_net'],
         ), $rows);
     }
 

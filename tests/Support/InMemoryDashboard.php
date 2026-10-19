@@ -28,8 +28,8 @@ final class InMemoryDashboard implements DashboardRepositoryInterface
         foreach ($this->activeInvoices() as $key => $invoice) {
             foreach ($this->invoices->reservations[$key] ?? [] as $reservation) {
                 $id = $invoice->id . '|' . $reservation->propertyId;
-                $current = $grouped[$id] ?? [$invoice->id, $reservation->propertyId, $invoice->month, 0, 0, 0];
-                $grouped[$id] = [$current[0], $current[1], $current[2], $current[3] + 1, $current[4] + $reservation->nights, $current[5] + (int) round($reservation->totalPayout * 100)];
+                $current = $grouped[$id] ?? [$invoice->id, $reservation->propertyId, $invoice->month, 0, 0, 0, 0];
+                $grouped[$id] = [$current[0], $current[1], $current[2], $current[3] + 1, $current[4] + $reservation->nights, $current[5] + (int) round($reservation->totalPayout * 100), $current[6] + (int) round($reservation->netOwnerRevenue * 100)];
             }
         }
 

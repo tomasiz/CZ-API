@@ -14,5 +14,6 @@ final readonly class InvoiceActivity
         public int $reservations,
         public int $nights,
         public int $payoutCents,
+        public int $ownerNetCents,
     ) {}
 }

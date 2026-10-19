@@ -13,6 +13,7 @@ final readonly class PropertyMonth
         public int $reservations,
         public int $nights,
         public int $payoutCents,
+        public int $ownerNetCents,
         public int $conciergeHtCents,
         public int $conciergeTtcCents,
         public int $linenHtCents,

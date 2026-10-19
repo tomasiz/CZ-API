@@ -150,6 +150,9 @@ final class DashboardTest extends AuthTestCase
         self::assertSame(['2026-09', 2, 7], [$villa['month'], $villa['reservations'], $villa['nights']]);
         self::assertSame(['2026-09', 1, 1], [$studio['month'], $studio['reservations'], $studio['nights']]);
         self::assertEqualsWithDelta(1000.0, $villa['payout'], 0.001);
+        // Net propriétaire figé : 300 € par séjour.
+        self::assertEqualsWithDelta(600.0, $villa['ownerNet'], 0.001);
+        self::assertEqualsWithDelta(300.0, $studio['ownerNet'], 0.001);
         // Conciergerie des deux séjours de la villa : 27,86 + 77,72 TTC.
         self::assertEqualsWithDelta(105.58, $villa['conciergeTtc'], 0.001);
         self::assertEqualsWithDelta(12.0, $studio['conciergeTtc'], 0.001);

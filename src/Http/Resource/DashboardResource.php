@@ -28,6 +28,7 @@ final class DashboardResource
                 'reservations' => $r->reservations,
                 'nights' => $r->nights,
                 'payout' => $r->payoutCents / 100,
+                'ownerNet' => $r->ownerNetCents / 100,
                 'conciergeHt' => $r->conciergeHtCents / 100,
                 'conciergeTtc' => $r->conciergeTtcCents / 100,
                 'linenHt' => $r->linenHtCents / 100,

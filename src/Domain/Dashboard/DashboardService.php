@@ -38,7 +38,7 @@ final readonly class DashboardService
         /** @var array<string, array<string, int>> $nights nuits de chaque logement, par facture */
         $nights = [];
         foreach ($this->dashboard->activity() as $activity) {
-            $cell($activity->propertyId, $activity->month)->addActivity($activity->reservations, $activity->nights, $activity->payoutCents);
+            $cell($activity->propertyId, $activity->month)->addActivity($activity->reservations, $activity->nights, $activity->payoutCents, $activity->ownerNetCents);
             $nights[$activity->invoiceId][$activity->propertyId] = ($nights[$activity->invoiceId][$activity->propertyId] ?? 0) + $activity->nights;
         }
 
