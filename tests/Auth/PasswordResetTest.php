@@ -168,6 +168,48 @@ final class PasswordResetTest extends AuthTestCase
         self::assertSame('validation_failed', $this->errorCode($response));
     }
 
+    public function testTheCommandLineFallbackSetsThePasswordAndEndsEverySession(): void
+    {
+        $cookie = $this->refreshCookie($this->login('alice@a.test'));
+        $this->forgot('alice@a.test');
+        $token = $this->tokenOf('alice@a.test');
+
+        $this->service()->resetByAdministrator(' Alice@A.test ', self::NEW_PASSWORD);
+
+        self::assertSame(401, $this->login('alice@a.test')->getStatusCode());
+        self::assertSame(200, $this->login('alice@a.test', self::NEW_PASSWORD)->getStatusCode());
+        self::assertSame('invalid_refresh_token', $this->errorCode($this->refresh($cookie)));
+        self::assertSame('invalid_reset_token', $this->errorCode($this->reset($token)), 'Un lien demandé avant ne sert plus.');
+    }
+
+    public function testTheCommandLineFallbackRefusesWeakPasswordsUnknownAndInvitedAccounts(): void
+    {
+        $this->asInvited('nina@a.test');
+        $service = $this->service();
+
+        foreach (['personne@a.test', 'nina@a.test'] as $email) {
+            try {
+                $service->resetByAdministrator($email, self::NEW_PASSWORD);
+                self::fail('Le compte ' . $email . ' aurait dû être refusé.');
+            } catch (\Casamiza\Shared\Exception\UnprocessableException $e) {
+                self::assertSame('user_not_found', $e->errorCode());
+            }
+        }
+
+        $this->expectException(\Casamiza\Shared\Exception\ValidationException::class);
+        $service->resetByAdministrator('alice@a.test', 'court');
+    }
+
+    private function service(): \Casamiza\Domain\Auth\PasswordResetService
+    {
+        $container = $this->app->getContainer();
+        self::assertNotNull($container);
+        $service = $container->get(\Casamiza\Domain\Auth\PasswordResetService::class);
+        self::assertInstanceOf(\Casamiza\Domain\Auth\PasswordResetService::class, $service);
+
+        return $service;
+    }
+
     /** Invite un membre (jeton d'activation conservé dans le notifieur d'invitation). */
     private function asInvited(string $email): void
     {

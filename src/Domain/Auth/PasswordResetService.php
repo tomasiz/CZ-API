@@ -95,6 +95,32 @@ final readonly class PasswordResetService
         });
     }
 
+    /**
+     * Recours en ligne de commande (`user:reset-password`) quand MailerSend n'est pas configuré : fixe le mot de passe d'un
+     * compte actif, invalide ses liens de réinitialisation et coupe toutes ses sessions. L'accès au serveur fait foi.
+     *
+     * @throws \Casamiza\Shared\Exception\ValidationException `password` (`too_short`, `too_long`)
+     * @throws UnprocessableException `user_not_found` (inconnu ou compte non activé : un membre invité passe par son invitation)
+     */
+    public function resetByAdministrator(string $email, string $password): User
+    {
+        PasswordPolicy::assert($password);
+
+        $user = $this->users->findByEmail(strtolower(trim($email)));
+        if ($user === null || $user->status !== UserStatus::Active) {
+            throw new UnprocessableException('user_not_found');
+        }
+
+        $this->transaction->run(function () use ($user, $password): void {
+            $now = $this->clock->now();
+            $this->users->updatePasswordHash($user->tenantId, $user->id, $this->hasher->hash($password));
+            $this->tokens->invalidateForUser($user->tenantId, $user->id, TokenPurpose::PasswordReset, $now);
+            $this->refreshTokens->revokeAllForUser($user->tenantId, $user->id, $now);
+        });
+
+        return $user;
+    }
+
     private function issueAndSend(User $user): void
     {
         $token = bin2hex(random_bytes(32));
