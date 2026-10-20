@@ -17,4 +17,14 @@ interface GuestyReservationsInterface
      * @throws \Casamiza\Shared\Exception\ApiException Guesty injoignable, identifiants refusés, limite atteinte…
      */
     public function reservations(DateTimeImmutable $from, ?DateTimeImmutable $before = null): array;
+
+    /**
+     * Ces réservations, **quel que soit leur statut** (une annulation reste lisible, `confirmed = false`). Un identifiant que
+     * Guesty ne connaît pas est simplement absent du résultat.
+     *
+     * @param list<string> $guestyIds
+     * @return list<GuestyReservation>
+     * @throws \Casamiza\Shared\Exception\ApiException
+     */
+    public function reservationsByIds(array $guestyIds): array;
 }

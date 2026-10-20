@@ -11,6 +11,9 @@ use Casamiza\Domain\Auth\PasswordResetNotifierInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
+use Casamiza\Domain\Cost\BeyondFeeRepositoryInterface;
+use Casamiza\Domain\Cost\BeyondFileStorageInterface;
+use Casamiza\Domain\Cost\BeyondStatementRepositoryInterface;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
@@ -41,6 +44,9 @@ use Casamiza\Tests\Support\FixedClock;
 use Casamiza\Tests\Support\ImmediateAfterResponse;
 use Casamiza\Tests\Support\ImmediateTransaction;
 use Casamiza\Tests\Support\InMemoryAuditLog;
+use Casamiza\Tests\Support\InMemoryBeyondFees;
+use Casamiza\Tests\Support\InMemoryBeyondFiles;
+use Casamiza\Tests\Support\InMemoryBeyondStatements;
 use Casamiza\Tests\Support\InMemoryCompanySettings;
 use Casamiza\Tests\Support\InMemoryDashboard;
 use Casamiza\Tests\Support\InMemoryExtras;
@@ -95,6 +101,9 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryInvoices $invoices;
     protected InMemoryInvoiceFiles $invoiceFiles;
     protected InMemoryDashboard $dashboard;
+    protected InMemoryBeyondFees $beyondFees;
+    protected InMemoryBeyondStatements $beyondStatements;
+    protected InMemoryBeyondFiles $beyondFiles;
     protected InMemoryCompanySettings $company;
     protected InMemoryLogoStorage $logos;
     protected FakeDocumentRenderer $renderer;
@@ -141,6 +150,9 @@ abstract class AuthTestCase extends AppTestCase
         $this->invoices = new InMemoryInvoices($context, $this->properties);
         $this->invoiceFiles = new InMemoryInvoiceFiles();
         $this->dashboard = new InMemoryDashboard($context, $this->invoices, $this->properties, $this->owners);
+        $this->beyondFees = new InMemoryBeyondFees($context, $this->reservations);
+        $this->beyondStatements = new InMemoryBeyondStatements($context);
+        $this->beyondFiles = new InMemoryBeyondFiles($context);
         $this->invoiced = new InvoicedMonths($this->invoices, $context);
         $this->company = new InMemoryCompanySettings($context);
         $this->logos = new InMemoryLogoStorage();
@@ -185,6 +197,9 @@ abstract class AuthTestCase extends AppTestCase
             InvoiceRepositoryInterface::class => $this->invoices,
             InvoiceFileStorageInterface::class => $this->invoiceFiles,
             DashboardRepositoryInterface::class => $this->dashboard,
+            BeyondFeeRepositoryInterface::class => $this->beyondFees,
+            BeyondStatementRepositoryInterface::class => $this->beyondStatements,
+            BeyondFileStorageInterface::class => $this->beyondFiles,
             InvoicedMonthsInterface::class => $this->invoiced,
             CompanySettingsRepositoryInterface::class => $this->company,
             LogoStorageInterface::class => $this->logos,

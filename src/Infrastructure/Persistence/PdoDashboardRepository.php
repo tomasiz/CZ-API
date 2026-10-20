@@ -9,6 +9,7 @@ use Casamiza\Domain\Dashboard\BilledCategory;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Dashboard\InvoiceActivity;
+use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Extra\ExtraType;
 use Casamiza\Domain\Invoice\InvoiceLineKind;
 
@@ -85,6 +86,28 @@ final class PdoDashboardRepository extends BaseRepository implements DashboardRe
             (string) ($row['owner_name'] ?? ''),
             $row['archived_at'] === null,
         ), $rows);
+    }
+
+    public function beyondFees(): array
+    {
+        $rows = $this->fetch(
+            'SELECT property_id, check_out, CAST(ROUND(beyond_fee * 100) AS SIGNED) AS cents
+             FROM reservations
+             WHERE tenant_id = :tenant AND beyond_fee <> 0',
+        );
+
+        // Lignes sans réservation : le séjour se termine le jour du check-in plus les nuits.
+        $orphans = $this->fetch(
+            'SELECT property_id, DATE_ADD(check_in, INTERVAL nights DAY) AS check_out, CAST(ROUND(amount * 100) AS SIGNED) AS cents
+             FROM beyond_fee_items
+             WHERE tenant_id = :tenant AND reservation_id IS NULL AND amount <> 0',
+        );
+
+        return array_map(static fn(array $row): ReservationCost => new ReservationCost(
+            $row['property_id'] === null ? null : (string) $row['property_id'],
+            DbDate::fromDb($row['check_out']),
+            (int) $row['cents'],
+        ), [...$rows, ...$orphans]);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Casamiza\Tests\Dashboard;
 
 use Casamiza\Domain\Company\CompanySettings;
 use Casamiza\Domain\Company\CompanySettingsPatch;
+use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Extra\Extra;
 use Casamiza\Domain\Extra\ExtraType;
 use Casamiza\Domain\Guesty\GuestyReservation;
@@ -159,6 +160,34 @@ final class DashboardTest extends AuthTestCase
         // Un coût logiciel par logement et par mois.
         self::assertEqualsWithDelta(17.9, $villa['softwareCost'], 0.001);
         self::assertEqualsWithDelta(17.9, $studio['softwareCost'], 0.001);
+    }
+
+    public function testBeyondFeesAreAddedToTheSoftwareCostOfTheMonthOfTheCheckOutInParis(): void
+    {
+        $this->issue();
+        $cost = static fn(string $property, string $checkOut, int $cents): ReservationCost => new ReservationCost($property, new DateTimeImmutable($checkOut . ' UTC'), $cents);
+        $this->dashboard->beyondFees = [
+            $cost('prop-1', '2026-09-14 08:00:00', 545),
+            // 22 h 30 UTC le 31/08 = 00 h 30 le 1er septembre à Paris : septembre
+            $cost('prop-1', '2026-08-31 22:30:00', 100),
+            // 22 h 30 UTC le 30/09 = 00 h 30 le 1er octobre à Paris : octobre, mois pas facturé, donc sans ligne
+            $cost('prop-1', '2026-09-30 22:30:00', 999),
+            // Annulation nette : un coût négatif réduit le coût du mois
+            $cost('prop-2', '2026-09-10 08:00:00', -245),
+        ];
+        // Une ligne de relevé sans logement connu : ligne « sans logement » du mois facturé (septembre), rien pour un mois pas facturé.
+        $this->dashboard->beyondFees[] = new ReservationCost(null, new DateTimeImmutable('2026-09-20 00:00:00 UTC'), 300);
+        $this->dashboard->beyondFees[] = new ReservationCost(null, new DateTimeImmutable('2026-12-20 00:00:00 UTC'), 700);
+
+        $records = $this->records();
+
+        self::assertCount(3, $records);
+        $villa = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-1'))[0];
+        $studio = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-2'))[0];
+        $none = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === null))[0];
+        self::assertEqualsWithDelta(17.9 + 5.45 + 1.0, $villa['softwareCost'], 0.001);
+        self::assertEqualsWithDelta(17.9 - 2.45, $studio['softwareCost'], 0.001);
+        self::assertEqualsWithDelta(3.0, $none['softwareCost'], 0.001, 'pas de coût fixe sans logement');
     }
 
     public function testTheSumOfTheRecordsEqualsTheInvoiceTotalsToTheCent(): void

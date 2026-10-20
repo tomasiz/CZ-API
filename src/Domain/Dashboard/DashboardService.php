@@ -6,6 +6,7 @@ namespace Casamiza\Domain\Dashboard;
 
 use Casamiza\Domain\Company\CompanySettings;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
+use Casamiza\Domain\Statement\BillingMonth;
 
 /**
  * Chiffres du tableau de bord : une ligne par (logement, mois facturé), calculée sur les **factures non annulées** à
@@ -15,7 +16,9 @@ use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
  * - le facturé (conciergerie, linge, ménage, HT et TTC) vient de `invoice_lines` ;
  * - une **prestation** n'a pas de logement : son montant est réparti entre les logements de la facture au prorata des
  *   nuits (à défaut, à parts égales entre les logements actifs du propriétaire ; à défaut, ligne « sans logement ») ;
- * - le coût logiciel du réglage de l'entreprise est compté une fois par ligne de logement.
+ * - le coût logiciel du réglage de l'entreprise est compté une fois par ligne de logement, **plus** les frais Beyond des
+ *   réservations de ce logement dont le check-out tombe dans le mois (coût réel, `reservations.beyond_fee`) : les deux
+ *   s'additionnent dans `softwareCost`.
  */
 final readonly class DashboardService
 {
@@ -69,7 +72,24 @@ final readonly class DashboardService
             }
         }
 
-        $records = array_map(static fn(MonthCell $c) => $c->toRecord($costCents), array_values($cells));
+        // Frais Beyond : portés par chaque réservation, rattachés au mois de son check-out (heure de Paris, comme sa facture).
+        // Une ligne (logement, mois) n'existe que si le mois est facturé : les frais d'un mois pas encore facturé n'apparaissent pas.
+        $beyond = [];
+        // Les clés des cellules sont « logement|mois » : les mois facturés.
+        $billedMonths = array_flip(array_map(static fn(string $key): string => substr($key, (int) strrpos($key, '|') + 1), array_keys($cells)));
+        foreach ($this->dashboard->beyondFees() as $fee) {
+            // Un coût sans logement connu (titre d'annonce inconnu) a sa propre ligne « sans logement », si le mois est facturé.
+            if ($fee->propertyId === null && isset($billedMonths[BillingMonth::of($fee->checkOut)])) {
+                $cell(null, BillingMonth::of($fee->checkOut));
+            }
+            $key = ($fee->propertyId ?? '') . '|' . BillingMonth::of($fee->checkOut);
+            $beyond[$key] = ($beyond[$key] ?? 0) + $fee->cents;
+        }
+
+        $records = [];
+        foreach ($cells as $key => $c) {
+            $records[] = $c->toRecord($costCents, $beyond[$key] ?? 0);
+        }
         usort($records, static fn(PropertyMonth $a, PropertyMonth $b): int => [$a->month, $a->propertyId ?? ''] <=> [$b->month, $b->propertyId ?? '']);
 
         return new DashboardOverview($properties, $records);

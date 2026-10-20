@@ -6,7 +6,7 @@ namespace Casamiza\Domain\Guesty;
 
 use DateTimeImmutable;
 
-/** Réservation confirmée telle que Guesty la décrit (lecture seule, montants bruts). */
+/** Réservation telle que Guesty la décrit (lecture seule, montants bruts) ; confirmée sauf lecture par identifiant d'une annulation. */
 final readonly class GuestyReservation
 {
     /**
@@ -37,5 +37,7 @@ final readonly class GuestyReservation
         public float $fareAccommodationAdjusted,
         public array $payments,
         public array $confirmationTaxes,
+        /** Faux pour une réservation annulée (lue par identifiant seulement : la synchro ne lit que les confirmées). */
+        public bool $confirmed = true,
     ) {}
 }

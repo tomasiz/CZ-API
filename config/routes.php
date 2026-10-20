@@ -6,6 +6,7 @@ use Casamiza\Domain\User\Role;
 use Casamiza\Http\Controller\AuditLogController;
 use Casamiza\Http\Controller\AuthController;
 use Casamiza\Http\Controller\CompanyController;
+use Casamiza\Http\Controller\CostController;
 use Casamiza\Http\Controller\DashboardController;
 use Casamiza\Http\Controller\ExtraController;
 use Casamiza\Http\Controller\HealthController;
@@ -89,6 +90,17 @@ return static function (App $app): void {
 
             // Journal d'audit : administrateurs seulement.
             $api->get('/audit-log', [AuditLogController::class, 'index'])->add(new RoleMiddleware(Role::Admin));
+
+            // Coûts logiciels : relevés de Beyond Pricing (du 12 au 12), un CSV par relevé, administrateurs seulement.
+            $api->group('/costs/beyond/statements', function (RouteCollectorProxy $beyond): void {
+                $beyond->get('', [CostController::class, 'statements']);
+                $beyond->get('/{start}', [CostController::class, 'statement']);
+                // POST multipart (champs `file` et `apply`) : `apply=false` simule, `apply=true` écrit.
+                $beyond->post('/{start}/import', [CostController::class, 'import']);
+                // Rejoue le CSV conservé (JSON : `apply`).
+                $beyond->post('/{start}/reprocess', [CostController::class, 'reprocess']);
+                $beyond->get('/{start}/file', [CostController::class, 'file']);
+            })->add(new RoleMiddleware(Role::Admin));
 
             // Tableau de bord : chiffres figés des factures, administrateurs seulement.
             $api->get('/dashboard', [DashboardController::class, 'index'])->add(new RoleMiddleware(Role::Admin));

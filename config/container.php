@@ -11,6 +11,9 @@ use Casamiza\Domain\Auth\PasswordResetNotifierInterface;
 use Casamiza\Domain\Auth\RefreshTokenRepositoryInterface;
 use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Company\LogoStorageInterface;
+use Casamiza\Domain\Cost\BeyondFeeRepositoryInterface;
+use Casamiza\Domain\Cost\BeyondFileStorageInterface;
+use Casamiza\Domain\Cost\BeyondStatementRepositoryInterface;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Guesty\GuestyDirectoryInterface;
@@ -43,6 +46,8 @@ use Casamiza\Infrastructure\Pdf\PdfDocumentRenderer;
 use Casamiza\Infrastructure\Pdf\PdfFontDirectory;
 use Casamiza\Infrastructure\Persistence\PdoAuditLogRepository;
 use Casamiza\Infrastructure\Persistence\PdoAuthUserRepository;
+use Casamiza\Infrastructure\Persistence\PdoBeyondFeeRepository;
+use Casamiza\Infrastructure\Persistence\PdoBeyondStatementRepository;
 use Casamiza\Infrastructure\Persistence\PdoCompanySettingsRepository;
 use Casamiza\Infrastructure\Persistence\PdoDashboardRepository;
 use Casamiza\Infrastructure\Persistence\PdoExtraRepository;
@@ -59,6 +64,7 @@ use Casamiza\Infrastructure\Persistence\PdoTransaction;
 use Casamiza\Infrastructure\Persistence\PdoUserRepository;
 use Casamiza\Infrastructure\Persistence\PdoUserTokenRepository;
 use Casamiza\Infrastructure\Security\Encryptor;
+use Casamiza\Infrastructure\Storage\FileBeyondStorage;
 use Casamiza\Infrastructure\Storage\FileInvoiceStorage;
 use Casamiza\Infrastructure\Storage\FileLogoStorage;
 use Casamiza\Shared\AfterResponse;
@@ -112,6 +118,9 @@ return [
     InvoiceRepositoryInterface::class => get(PdoInvoiceRepository::class),
     InvoicedMonthsInterface::class => get(InvoiceRepositoryInvoicedMonths::class),
     DashboardRepositoryInterface::class => get(PdoDashboardRepository::class),
+    BeyondFeeRepositoryInterface::class => get(PdoBeyondFeeRepository::class),
+    BeyondStatementRepositoryInterface::class => get(PdoBeyondStatementRepository::class),
+    BeyondFileStorageInterface::class => static fn(ContainerInterface $c): FileBeyondStorage => new FileBeyondStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
     CompanySettingsRepositoryInterface::class => get(PdoCompanySettingsRepository::class),
     InvoiceFileStorageInterface::class => static fn(ContainerInterface $c): FileInvoiceStorage => new FileInvoiceStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
     LogoStorageInterface::class => static fn(ContainerInterface $c): FileLogoStorage => new FileLogoStorage($c->get(Settings::class)->projectRoot . '/storage'),

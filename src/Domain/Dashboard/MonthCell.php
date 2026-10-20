@@ -30,7 +30,11 @@ final class MonthCell
         $this->billed[$category->value] = ['ht' => $current['ht'] + $htCents, 'ttc' => $current['ttc'] + $ttcCents];
     }
 
-    public function toRecord(int $softwareCostCents): PropertyMonth
+    /**
+     * @param int $fixedCostCents coût logiciel fixe par logement (jamais pour la ligne « sans logement »)
+     * @param int $variableCostCents frais Beyond du logement et du mois (la ligne « sans logement » reçoit ceux dont le logement est inconnu)
+     */
+    public function toRecord(int $fixedCostCents, int $variableCostCents): PropertyMonth
     {
         $amount = fn(BilledCategory $type, string $basis): int => $this->billed[$type->value][$basis] ?? 0;
 
@@ -47,7 +51,7 @@ final class MonthCell
             $amount(BilledCategory::Linen, 'ttc'),
             $amount(BilledCategory::Disbursement, 'ht'),
             $amount(BilledCategory::Disbursement, 'ttc'),
-            $this->propertyId === null ? 0 : $softwareCostCents,
+            ($this->propertyId === null ? 0 : $fixedCostCents) + $variableCostCents,
         );
     }
 }

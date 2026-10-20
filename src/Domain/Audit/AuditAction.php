@@ -29,6 +29,7 @@ enum AuditAction: string
     case IntegrationRemoved = 'integration_removed';
     case CompanySettingsUpdated = 'company_settings_updated';
     case PropertyOwnerChanged = 'property_owner_changed';
+    case BeyondFeesImported = 'beyond_fees_imported';
 
     // Factures
     case InvoiceCreated = 'invoice_created';
@@ -44,7 +45,8 @@ enum AuditAction: string
             self::MemberInvited, self::InvitationResent, self::MemberActivated,
             self::MemberRoleChanged, self::MemberRemoved => AuditFamily::Team,
             self::OwnerStripeKeySet, self::OwnerStripeKeyRemoved, self::IntegrationSaved,
-            self::IntegrationRemoved, self::CompanySettingsUpdated, self::PropertyOwnerChanged => AuditFamily::Settings,
+            self::IntegrationRemoved, self::CompanySettingsUpdated, self::PropertyOwnerChanged,
+            self::BeyondFeesImported => AuditFamily::Settings,
             self::InvoiceCreated, self::InvoicePaymentUpdated, self::InvoiceEmailed,
             self::InvoicesImported => AuditFamily::Invoices,
         };

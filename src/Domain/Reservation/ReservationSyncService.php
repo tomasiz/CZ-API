@@ -10,7 +10,9 @@ use Casamiza\Domain\Guesty\GuestyReservationsInterface;
 use Casamiza\Domain\Guesty\SyncCounts;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
 use Casamiza\Domain\Integration\Provider;
+use Casamiza\Domain\Owner\Owner;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
+use Casamiza\Domain\Property\Property;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Shared\Exception\NotFoundException;
 use Casamiza\Shared\Transaction;
@@ -101,19 +103,7 @@ final readonly class ReservationSyncService
                     : $current->mergedWith($guesty, $property->ownerId, $property->id);
 
                 $owner = $property->ownerId === null ? null : ($owners[$property->ownerId] ?? null);
-                if ($reservation->stripeFee === null || $reservation->stripeError !== null) {
-                    $fees = $this->stripe->resolve($reservation, $owner);
-                    if ($fees !== null) {
-                        $reservation = $reservation->withStripeFees($fees);
-                        $stripeLookups++;
-                    }
-                }
-                $reservation = $reservation->withCalculation($this->calculator->calculate(
-                    $reservation,
-                    $owner->commission ?? $defaultCommission,
-                    $property->cleaningFee,
-                    $reservation->storedStripeFees(),
-                ));
+                $reservation = $this->calculated($reservation, $property, $owner, $defaultCommission, $stripeLookups);
 
                 if ($current === null) {
                     $this->reservations->add($reservation);
@@ -142,5 +132,90 @@ final readonly class ReservationSyncService
 
             return new ReservationSyncReport(new SyncCounts($created, $updated, $archived, $unchanged), $skipped, $stripeLookups, $from, $now, $before);
         });
+    }
+
+    /**
+     * Lit ces réservations chez Guesty par identifiant, quel que soit leur statut (à appeler **avant** toute transaction).
+     *
+     * @param list<string> $guestyIds
+     * @return list<GuestyReservation>
+     * @throws NotFoundException `integration_not_configured`
+     * @throws \Casamiza\Shared\Exception\ApiException l'accès à Guesty a échoué
+     */
+    public function fetch(array $guestyIds): array
+    {
+        if ($this->integrations->find(Provider::Guesty) === null) {
+            throw new NotFoundException('integration_not_configured');
+        }
+
+        return $guestyIds === [] ? [] : $this->guesty->reservationsByIds($guestyIds);
+    }
+
+    /**
+     * Enregistre des réservations lues par identifiant, comme la synchro le ferait (montants bruts, puis calculés). Celles dont
+     * le logement est inconnu sont **ignorées** (l'appelant les a écartées avant) ; une réservation annulée est enregistrée
+     * archivée, pour qu'on puisse y rattacher un coût. À appeler dans la transaction de l'appelant.
+     *
+     * @param list<GuestyReservation> $fetched
+     * @return array<string, Reservation> par identifiant Guesty
+     */
+    public function store(array $fetched): array
+    {
+        $properties = [];
+        foreach ($this->properties->all() as $property) {
+            $properties[$property->guestyId] = $property;
+        }
+        $owners = [];
+        foreach ($this->owners->all() as $owner) {
+            $owners[$owner->id] = $owner;
+        }
+        $defaultCommission = $this->company->find()->defaultCommission ?? 0.0;
+        $now = $this->clock->now();
+
+        $stored = [];
+        $lookups = 0;
+        foreach ($fetched as $guesty) {
+            $property = $properties[$guesty->listingGuestyId] ?? null;
+            if ($property === null) {
+                continue;
+            }
+            $current = $this->reservations->findByGuestyId($guesty->guestyId);
+            $reservation = $current === null
+                ? Reservation::fromGuesty(Uuid::uuid7()->toString(), $guesty, $property->ownerId, $property->id)
+                : $current->mergedWith($guesty, $property->ownerId, $property->id);
+            $owner = $property->ownerId === null ? null : ($owners[$property->ownerId] ?? null);
+            $reservation = $this->calculated($reservation, $property, $owner, $defaultCommission, $lookups);
+            if (!$guesty->confirmed && !$reservation->isArchived()) {
+                $reservation = $reservation->archived($now);
+            }
+
+            if ($current === null) {
+                $this->reservations->add($reservation);
+            } elseif (!$reservation->sameAs($current)) {
+                $this->reservations->update($reservation);
+            }
+            $stored[$guesty->guestyId] = $reservation;
+        }
+
+        return $stored;
+    }
+
+    /** Frais Stripe manquants lus (une fois par réservation), puis montants calculés. `$stripeLookups` compte les lectures faites. */
+    private function calculated(Reservation $reservation, Property $property, ?Owner $owner, float $defaultCommission, int &$stripeLookups): Reservation
+    {
+        if ($reservation->stripeFee === null || $reservation->stripeError !== null) {
+            $fees = $this->stripe->resolve($reservation, $owner);
+            if ($fees !== null) {
+                $reservation = $reservation->withStripeFees($fees);
+                $stripeLookups++;
+            }
+        }
+
+        return $reservation->withCalculation($this->calculator->calculate(
+            $reservation,
+            $owner->commission ?? $defaultCommission,
+            $property->cleaningFee,
+            $reservation->storedStripeFees(),
+        ));
     }
 }

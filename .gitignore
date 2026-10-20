@@ -6,6 +6,8 @@
 /storage/logos/*
 # PDF des factures et récapitulatifs : documents légaux et données personnelles, jamais versionnés
 /storage/invoices/*
+# Relevés Beyond Pricing conservés pour être retéléchargés : données d'exécution, jamais versionnées
+/storage/beyond/*
 .vite/
 .phpunit.cache/
 .php-cs-fixer.cache

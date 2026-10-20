@@ -9,6 +9,7 @@ use Casamiza\Domain\Dashboard\BilledCategory;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Dashboard\InvoiceActivity;
+use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Invoice\Invoice;
 use Casamiza\Shared\TenantContext;
 
@@ -21,6 +22,14 @@ final class InMemoryDashboard implements DashboardRepositoryInterface
         private readonly InMemoryProperties $properties,
         private readonly InMemoryOwners $owners,
     ) {}
+
+    /** @var list<ReservationCost> frais Beyond à servir (les tests les posent directement) */
+    public array $beyondFees = [];
+
+    public function beyondFees(): array
+    {
+        return $this->beyondFees;
+    }
 
     public function activity(): array
     {

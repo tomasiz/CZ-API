@@ -23,4 +23,12 @@ interface DashboardRepositoryInterface
 
     /** @return list<DashboardProperty> */
     public function properties(): array;
+
+    /**
+     * Les frais Beyond : réservations qui en portent (`beyond_fee` non nul, archivées comprises : un coût engagé reste un coût),
+     * puis une entrée par ligne de relevé sans réservation.
+     *
+     * @return list<ReservationCost>
+     */
+    public function beyondFees(): array;
 }

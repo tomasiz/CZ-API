@@ -38,6 +38,12 @@ final class BillingMonth
         return self::bounds($paris->modify('first day of last month')->format('Y-m'))[0];
     }
 
+    /** Mois (`AAAA-MM`) auquel appartient un instant : celui de sa date à Paris. */
+    public static function of(DateTimeImmutable $instant): string
+    {
+        return $instant->setTimezone(new DateTimeZone(self::TIMEZONE))->format('Y-m');
+    }
+
     public static function isValid(string $month): bool
     {
         return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1 && $month >= self::FIRST;

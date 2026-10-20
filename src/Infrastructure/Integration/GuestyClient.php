@@ -37,6 +37,14 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
     /** Garde-fou contre une pagination qui ne se termine jamais (20 000 éléments). */
     private const MAX_PAGES = 200;
 
+    /** Identifiants de réservation par requête (ils sont dans l'URL). */
+    private const IDS_PER_REQUEST = 50;
+
+    /** Sous-champs de `money` listés un à un : demander `money` en entier renvoie des centaines de lignes de détail. */
+    private const RESERVATION_FIELDS = '_id listingId source status checkIn checkOut guest.fullName integration nightsCount guestsCount'
+        . ' money.hostPayout money.hostServiceFee money.totalPaymentFees money.totalTaxes money.fareCleaning money.totalFees'
+        . ' money.transientOccupancyTax money.fareAccommodationAdjusted money.payments atTimeOfConfirmation.taxes';
+
     /** Logements interrogés au plus pour retrouver les identifiants des champs de coûts. */
     private const FEE_LOOKUPS = 3;
 
@@ -145,16 +153,37 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
             $day = $before->setTime(0, 0);
             $conditions[] = ['field' => 'checkOut', 'operator' => '$lt', 'value' => ($day < $before ? $day->modify('+1 day') : $day)->format('Y-m-d')];
         }
-        $filters = json_encode($conditions, JSON_THROW_ON_ERROR);
-        // Sous-champs de `money` listés un à un : demander `money` en entier renvoie des centaines de lignes de détail.
         $rows = $this->fetchAll($this->session(), '/v1/reservations', [
-            'filters' => $filters,
+            'filters' => json_encode($conditions, JSON_THROW_ON_ERROR),
             'sort' => 'checkOut',
-            'fields' => '_id listingId source status checkIn checkOut guest.fullName integration nightsCount guestsCount'
-                . ' money.hostPayout money.hostServiceFee money.totalPaymentFees money.totalTaxes money.fareCleaning money.totalFees'
-                . ' money.transientOccupancyTax money.fareAccommodationAdjusted money.payments atTimeOfConfirmation.taxes',
+            'fields' => self::RESERVATION_FIELDS,
         ]);
 
+        return $this->mapReservations($rows);
+    }
+
+    public function reservationsByIds(array $guestyIds): array
+    {
+        $session = $this->session();
+        $reservations = [];
+        // Les identifiants voyagent dans l'URL : par lots, quel que soit le statut (une annulation reste lisible).
+        foreach (array_chunk(array_values(array_unique($guestyIds)), self::IDS_PER_REQUEST) as $chunk) {
+            $rows = $this->fetchAll($session, '/v1/reservations', [
+                'filters' => json_encode([['field' => '_id', 'operator' => '$in', 'value' => $chunk]], JSON_THROW_ON_ERROR),
+                'fields' => self::RESERVATION_FIELDS,
+            ]);
+            array_push($reservations, ...$this->mapReservations($rows));
+        }
+
+        return $reservations;
+    }
+
+    /**
+     * @param list<array<array-key, mixed>> $rows
+     * @return list<GuestyReservation>
+     */
+    private function mapReservations(array $rows): array
+    {
         $reservations = [];
         foreach ($rows as $row) {
             $id = self::string($row['_id'] ?? null);
@@ -188,6 +217,8 @@ final readonly class GuestyClient implements GuestyDirectoryInterface, GuestyRes
                 fareAccommodationAdjusted: self::amount($money['fareAccommodationAdjusted'] ?? null),
                 payments: self::map($money['payments'] ?? null),
                 confirmationTaxes: self::map(self::map($row['atTimeOfConfirmation'] ?? null)['taxes'] ?? null),
+                // Une réponse sans statut n'est pas une annulation : on ne l'archive pas à tort.
+                confirmed: !isset($row['status']) || $row['status'] === 'confirmed',
             );
         }
 
