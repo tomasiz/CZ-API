@@ -14,6 +14,9 @@ use Casamiza\Domain\Company\LogoStorageInterface;
 use Casamiza\Domain\Cost\BeyondFeeRepositoryInterface;
 use Casamiza\Domain\Cost\BeyondFileStorageInterface;
 use Casamiza\Domain\Cost\BeyondStatementRepositoryInterface;
+use Casamiza\Domain\Cost\ExchangeRatesInterface;
+use Casamiza\Domain\Cost\GuestyCostFileStorageInterface;
+use Casamiza\Domain\Cost\GuestyCostRepositoryInterface;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Guesty\GuestyDirectoryInterface;
@@ -35,6 +38,7 @@ use Casamiza\Domain\Team\InvitationNotifierInterface;
 use Casamiza\Domain\Team\UserTokenRepositoryInterface;
 use Casamiza\Domain\Tenant\TenantRepositoryInterface;
 use Casamiza\Domain\User\UserRepositoryInterface;
+use Casamiza\Infrastructure\Integration\FrankfurterExchangeRates;
 use Casamiza\Infrastructure\Integration\GuestyClient;
 use Casamiza\Infrastructure\Integration\GuestyProvider;
 use Casamiza\Infrastructure\Integration\MailerSendProvider;
@@ -51,6 +55,7 @@ use Casamiza\Infrastructure\Persistence\PdoBeyondStatementRepository;
 use Casamiza\Infrastructure\Persistence\PdoCompanySettingsRepository;
 use Casamiza\Infrastructure\Persistence\PdoDashboardRepository;
 use Casamiza\Infrastructure\Persistence\PdoExtraRepository;
+use Casamiza\Infrastructure\Persistence\PdoGuestyCostRepository;
 use Casamiza\Infrastructure\Persistence\PdoIntegrationRepository;
 use Casamiza\Infrastructure\Persistence\PdoInvoiceRepository;
 use Casamiza\Infrastructure\Persistence\PdoLoginAttemptRepository;
@@ -65,6 +70,7 @@ use Casamiza\Infrastructure\Persistence\PdoUserRepository;
 use Casamiza\Infrastructure\Persistence\PdoUserTokenRepository;
 use Casamiza\Infrastructure\Security\Encryptor;
 use Casamiza\Infrastructure\Storage\FileBeyondStorage;
+use Casamiza\Infrastructure\Storage\FileGuestyCostStorage;
 use Casamiza\Infrastructure\Storage\FileInvoiceStorage;
 use Casamiza\Infrastructure\Storage\FileLogoStorage;
 use Casamiza\Shared\AfterResponse;
@@ -121,6 +127,9 @@ return [
     BeyondFeeRepositoryInterface::class => get(PdoBeyondFeeRepository::class),
     BeyondStatementRepositoryInterface::class => get(PdoBeyondStatementRepository::class),
     BeyondFileStorageInterface::class => static fn(ContainerInterface $c): FileBeyondStorage => new FileBeyondStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
+    GuestyCostRepositoryInterface::class => get(PdoGuestyCostRepository::class),
+    GuestyCostFileStorageInterface::class => static fn(ContainerInterface $c): FileGuestyCostStorage => new FileGuestyCostStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
+    ExchangeRatesInterface::class => get(FrankfurterExchangeRates::class),
     CompanySettingsRepositoryInterface::class => get(PdoCompanySettingsRepository::class),
     InvoiceFileStorageInterface::class => static fn(ContainerInterface $c): FileInvoiceStorage => new FileInvoiceStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
     LogoStorageInterface::class => static fn(ContainerInterface $c): FileLogoStorage => new FileLogoStorage($c->get(Settings::class)->projectRoot . '/storage'),

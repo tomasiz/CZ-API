@@ -32,7 +32,6 @@ final class CompanySettingsResource
             'vatRateConcierge' => $s->vatRates->concierge,
             'vatRateLinen' => $s->vatRates->linen,
             'vatRateCleaning' => $s->vatRates->cleaning,
-            'softwareCost' => $s->softwareCost,
             'hasLogo' => $s->hasLogo(),
         ];
     }

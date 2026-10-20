@@ -8,6 +8,7 @@ use Casamiza\Domain\Dashboard\BilledAmount;
 use Casamiza\Domain\Dashboard\BilledCategory;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
+use Casamiza\Domain\Dashboard\GuestyCost;
 use Casamiza\Domain\Dashboard\InvoiceActivity;
 use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Extra\ExtraType;
@@ -108,6 +109,22 @@ final class PdoDashboardRepository extends BaseRepository implements DashboardRe
             DbDate::fromDb($row['check_out']),
             (int) $row['cents'],
         ), [...$rows, ...$orphans]);
+    }
+
+    public function guestyCosts(): array
+    {
+        $rows = $this->fetch(
+            'SELECT property_id, cost_month, CAST(ROUND(SUM(amount) * 100) AS SIGNED) AS cents
+             FROM guesty_cost_items
+             WHERE tenant_id = :tenant AND counted = 1
+             GROUP BY property_id, cost_month',
+        );
+
+        return array_map(static fn(array $row): GuestyCost => new GuestyCost(
+            $row['property_id'] === null ? null : (string) $row['property_id'],
+            (string) $row['cost_month'],
+            (int) $row['cents'],
+        ), $rows);
     }
 
     /**

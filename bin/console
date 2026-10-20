@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Casamiza\Console\AuditPurgeCommand;
 use Casamiza\Console\BeyondImportCommand;
+use Casamiza\Console\GuestyCostImportCommand;
 use Casamiza\Console\GuestySourcesCommand;
 use Casamiza\Console\ImportFacturizaDirectoryCommand;
 use Casamiza\Console\ImportFacturizaInvoicesCommand;
@@ -36,4 +37,5 @@ $application->addCommand($container->get(ImportFacturizaOwnersCommand::class));
 $application->addCommand($container->get(ImportFacturizaDirectoryCommand::class));
 $application->addCommand($container->get(ImportFacturizaInvoicesCommand::class));
 $application->addCommand($container->get(BeyondImportCommand::class));
+$application->addCommand($container->get(GuestyCostImportCommand::class));
 $application->run();

@@ -8,6 +8,8 @@
 /storage/invoices/*
 # Relevés Beyond Pricing conservés pour être retéléchargés : données d'exécution, jamais versionnées
 /storage/beyond/*
+# Factures Guesty (xlsx) conservées : données d'exécution, jamais versionnées
+/storage/guesty/*
 .vite/
 .phpunit.cache/
 .php-cs-fixer.cache

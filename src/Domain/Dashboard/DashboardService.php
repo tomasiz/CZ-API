@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Dashboard;
 
-use Casamiza\Domain\Company\CompanySettings;
-use Casamiza\Domain\Company\CompanySettingsRepositoryInterface;
 use Casamiza\Domain\Statement\BillingMonth;
 
 /**
@@ -16,21 +14,19 @@ use Casamiza\Domain\Statement\BillingMonth;
  * - le facturé (conciergerie, linge, ménage, HT et TTC) vient de `invoice_lines` ;
  * - une **prestation** n'a pas de logement : son montant est réparti entre les logements de la facture au prorata des
  *   nuits (à défaut, à parts égales entre les logements actifs du propriétaire ; à défaut, ligne « sans logement ») ;
- * - le coût logiciel du réglage de l'entreprise est compté une fois par ligne de logement, **plus** les frais Beyond des
- *   réservations de ce logement dont le check-out tombe dans le mois (coût réel, `reservations.beyond_fee`) : les deux
- *   s'additionnent dans `softwareCost`, détaillé en `guestyCost` (réglage) et `beyondCost`.
+ * - le coût logiciel est la somme de deux coûts réels, détaillés en `guestyCost` et `beyondCost` : l'abonnement Guesty (factures
+ *   importées, au mois de la période facturée) et les frais Beyond des réservations du logement dont le check-out tombe dans le mois
+ *   (`reservations.beyond_fee`).
  */
 final readonly class DashboardService
 {
     public function __construct(
         private DashboardRepositoryInterface $dashboard,
-        private CompanySettingsRepositoryInterface $company,
     ) {}
 
     public function overview(): DashboardOverview
     {
         $properties = $this->dashboard->properties();
-        $costCents = (int) round(($this->company->find() ?? CompanySettings::blank())->softwareCost * 100);
 
         /** @var array<string, MonthCell> $cells clé « logement|mois » */
         $cells = [];
@@ -86,9 +82,21 @@ final readonly class DashboardService
             $beyond[$key] = ($beyond[$key] ?? 0) + $fee->cents;
         }
 
+        // Abonnement Guesty : facturé pour chaque annonce active, avec ou sans réservation. Un logement qui n'a rien rapporté ce mois-là
+        // (inactif, vacant) a donc sa ligne, pour que la marge reflète le coût réel ; un mois pas encore facturé n'a pas de ligne.
+        $guesty = [];
+        foreach ($this->dashboard->guestyCosts() as $cost) {
+            if (!isset($billedMonths[$cost->month])) {
+                continue;
+            }
+            $cell($cost->propertyId, $cost->month);
+            $key = ($cost->propertyId ?? '') . '|' . $cost->month;
+            $guesty[$key] = ($guesty[$key] ?? 0) + $cost->cents;
+        }
+
         $records = [];
         foreach ($cells as $key => $c) {
-            $records[] = $c->toRecord($costCents, $beyond[$key] ?? 0);
+            $records[] = $c->toRecord($guesty[$key] ?? 0, $beyond[$key] ?? 0);
         }
         usort($records, static fn(PropertyMonth $a, PropertyMonth $b): int => [$a->month, $a->propertyId ?? ''] <=> [$b->month, $b->propertyId ?? '']);
 

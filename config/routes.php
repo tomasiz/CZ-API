@@ -9,6 +9,7 @@ use Casamiza\Http\Controller\CompanyController;
 use Casamiza\Http\Controller\CostController;
 use Casamiza\Http\Controller\DashboardController;
 use Casamiza\Http\Controller\ExtraController;
+use Casamiza\Http\Controller\GuestyCostController;
 use Casamiza\Http\Controller\HealthController;
 use Casamiza\Http\Controller\IntegrationController;
 use Casamiza\Http\Controller\InvoiceController;
@@ -100,6 +101,16 @@ return static function (App $app): void {
                 // Rejoue le CSV conservé (JSON : `apply`).
                 $beyond->post('/{start}/reprocess', [CostController::class, 'reprocess']);
                 $beyond->get('/{start}/file', [CostController::class, 'file']);
+            })->add(new RoleMiddleware(Role::Admin));
+
+            // Coûts logiciels : factures de Guesty (export xlsx, en dollars), administrateurs seulement.
+            $api->group('/costs/guesty', function (RouteCollectorProxy $guesty): void {
+                $guesty->get('/invoices', [GuestyCostController::class, 'invoices']);
+                $guesty->get('/invoices/{number}', [GuestyCostController::class, 'invoice']);
+                $guesty->get('/invoices/{number}/file', [GuestyCostController::class, 'file']);
+                $guesty->delete('/invoices/{number}', [GuestyCostController::class, 'delete']);
+                // POST multipart (champs `file` et `apply`) : `apply=false` simule, `apply=true` écrit.
+                $guesty->post('/import', [GuestyCostController::class, 'import']);
             })->add(new RoleMiddleware(Role::Admin));
 
             // Tableau de bord : chiffres figés des factures, administrateurs seulement.

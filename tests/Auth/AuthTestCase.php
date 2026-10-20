@@ -14,6 +14,9 @@ use Casamiza\Domain\Company\LogoStorageInterface;
 use Casamiza\Domain\Cost\BeyondFeeRepositoryInterface;
 use Casamiza\Domain\Cost\BeyondFileStorageInterface;
 use Casamiza\Domain\Cost\BeyondStatementRepositoryInterface;
+use Casamiza\Domain\Cost\ExchangeRatesInterface;
+use Casamiza\Domain\Cost\GuestyCostFileStorageInterface;
+use Casamiza\Domain\Cost\GuestyCostRepositoryInterface;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
 use Casamiza\Domain\Extra\ExtraRepositoryInterface;
 use Casamiza\Domain\Integration\IntegrationRepositoryInterface;
@@ -40,6 +43,7 @@ use Casamiza\Shared\TenantContext;
 use Casamiza\Shared\Transaction;
 use Casamiza\Tests\AppTestCase;
 use Casamiza\Tests\Support\FakeDocumentRenderer;
+use Casamiza\Tests\Support\FakeExchangeRates;
 use Casamiza\Tests\Support\FixedClock;
 use Casamiza\Tests\Support\ImmediateAfterResponse;
 use Casamiza\Tests\Support\ImmediateTransaction;
@@ -50,6 +54,8 @@ use Casamiza\Tests\Support\InMemoryBeyondStatements;
 use Casamiza\Tests\Support\InMemoryCompanySettings;
 use Casamiza\Tests\Support\InMemoryDashboard;
 use Casamiza\Tests\Support\InMemoryExtras;
+use Casamiza\Tests\Support\InMemoryGuestyCostFiles;
+use Casamiza\Tests\Support\InMemoryGuestyCosts;
 use Casamiza\Tests\Support\InMemoryIntegrations;
 use Casamiza\Tests\Support\InMemoryInvitationNotifier;
 use Casamiza\Tests\Support\InMemoryInvoiceFiles;
@@ -104,6 +110,9 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryBeyondFees $beyondFees;
     protected InMemoryBeyondStatements $beyondStatements;
     protected InMemoryBeyondFiles $beyondFiles;
+    protected InMemoryGuestyCosts $guestyCosts;
+    protected InMemoryGuestyCostFiles $guestyCostFiles;
+    protected FakeExchangeRates $exchangeRates;
     protected InMemoryCompanySettings $company;
     protected InMemoryLogoStorage $logos;
     protected FakeDocumentRenderer $renderer;
@@ -153,6 +162,9 @@ abstract class AuthTestCase extends AppTestCase
         $this->beyondFees = new InMemoryBeyondFees($context, $this->reservations);
         $this->beyondStatements = new InMemoryBeyondStatements($context);
         $this->beyondFiles = new InMemoryBeyondFiles($context);
+        $this->guestyCosts = new InMemoryGuestyCosts($context);
+        $this->guestyCostFiles = new InMemoryGuestyCostFiles($context);
+        $this->exchangeRates = new FakeExchangeRates();
         $this->invoiced = new InvoicedMonths($this->invoices, $context);
         $this->company = new InMemoryCompanySettings($context);
         $this->logos = new InMemoryLogoStorage();
@@ -200,6 +212,9 @@ abstract class AuthTestCase extends AppTestCase
             BeyondFeeRepositoryInterface::class => $this->beyondFees,
             BeyondStatementRepositoryInterface::class => $this->beyondStatements,
             BeyondFileStorageInterface::class => $this->beyondFiles,
+            GuestyCostRepositoryInterface::class => $this->guestyCosts,
+            GuestyCostFileStorageInterface::class => $this->guestyCostFiles,
+            ExchangeRatesInterface::class => $this->exchangeRates,
             InvoicedMonthsInterface::class => $this->invoiced,
             CompanySettingsRepositoryInterface::class => $this->company,
             LogoStorageInterface::class => $this->logos,

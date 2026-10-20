@@ -31,6 +31,5 @@ final readonly class CompanySettingsPatch
         public ?float $vatRateConcierge = null,
         public ?float $vatRateLinen = null,
         public ?float $vatRateCleaning = null,
-        public ?float $softwareCost = null,
     ) {}
 }

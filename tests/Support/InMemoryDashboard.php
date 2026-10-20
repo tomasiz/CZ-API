@@ -8,6 +8,7 @@ use Casamiza\Domain\Dashboard\BilledAmount;
 use Casamiza\Domain\Dashboard\BilledCategory;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\DashboardRepositoryInterface;
+use Casamiza\Domain\Dashboard\GuestyCost;
 use Casamiza\Domain\Dashboard\InvoiceActivity;
 use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Invoice\Invoice;
@@ -29,6 +30,14 @@ final class InMemoryDashboard implements DashboardRepositoryInterface
     public function beyondFees(): array
     {
         return $this->beyondFees;
+    }
+
+    /** @var list<GuestyCost> abonnement Guesty à servir (les tests le posent directement) */
+    public array $guestyCosts = [];
+
+    public function guestyCosts(): array
+    {
+        return $this->guestyCosts;
     }
 
     public function activity(): array

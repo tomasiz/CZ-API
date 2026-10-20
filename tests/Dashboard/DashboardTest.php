@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Casamiza\Tests\Dashboard;
 
-use Casamiza\Domain\Company\CompanySettings;
-use Casamiza\Domain\Company\CompanySettingsPatch;
+use Casamiza\Domain\Dashboard\GuestyCost;
 use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Extra\Extra;
 use Casamiza\Domain\Extra\ExtraType;
@@ -36,7 +35,6 @@ final class DashboardTest extends AuthTestCase
         // Deux prestations sans logement : 17 € de linge et un avoir de ménage.
         $this->extras->add(Extra::priced('extra-1', 'owner-1', '2026-09', ExtraType::Linen, 'Linge', 17.0, 20.0));
         $this->extras->add(Extra::priced('extra-2', 'owner-1', '2026-09', ExtraType::Cleaning, 'Avoir ménage', -10.0, 20.0));
-        $this->company->save(CompanySettings::blank()->patched(new CompanySettingsPatch(softwareCost: 17.9)));
         $this->context->reset();
 
         $this->context->set('tenant-b');
@@ -157,14 +155,57 @@ final class DashboardTest extends AuthTestCase
         // Conciergerie des deux séjours de la villa : 27,86 + 77,72 TTC.
         self::assertEqualsWithDelta(105.58, $villa['conciergeTtc'], 0.001);
         self::assertEqualsWithDelta(12.0, $studio['conciergeTtc'], 0.001);
-        // Un coût logiciel par logement et par mois.
+    }
+
+    public function testTheGuestySubscriptionCountsPerPropertyAndBilledMonth(): void
+    {
+        $this->issue();
+        $this->dashboard->guestyCosts = [
+            new GuestyCost('prop-1', '2026-09', 1790),
+            // Deux lignes d'un même logement et d'un même mois (mois entier + prorata) s'additionnent
+            new GuestyCost('prop-2', '2026-09', 1790),
+            new GuestyCost('prop-2', '2026-09', 210),
+            // Octobre n'est pas facturé : pas de ligne, donc pas de coût
+            new GuestyCost('prop-1', '2026-10', 2100),
+        ];
+
+        $records = $this->records();
+
+        self::assertCount(2, $records);
+        $villa = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-1'))[0];
+        $studio = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-2'))[0];
+        self::assertEqualsWithDelta(17.9, $villa['guestyCost'], 0.001);
+        self::assertEqualsWithDelta(0.0, $villa['beyondCost'], 0.001);
         self::assertEqualsWithDelta(17.9, $villa['softwareCost'], 0.001);
-        self::assertEqualsWithDelta(17.9, $studio['softwareCost'], 0.001);
+        self::assertEqualsWithDelta(20.0, $studio['guestyCost'], 0.001);
+    }
+
+    public function testAListingBilledByGuestyWithoutAnyRevenueStillCostsInABilledMonth(): void
+    {
+        $this->issue();
+        $this->dashboard->guestyCosts = [
+            // Logement sans réservation facturée ce mois-là (inactif, vacant) : sa ligne existe pour porter le coût
+            new GuestyCost('prop-idle', '2026-09', 2000),
+            // Annonce qu'aucun logement ne porte : ligne « sans logement »
+            new GuestyCost(null, '2026-09', 250),
+            new GuestyCost(null, '2026-12', 999),
+        ];
+
+        $records = $this->records();
+
+        self::assertCount(4, $records);
+        $idle = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-idle'))[0];
+        $none = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === null))[0];
+        self::assertSame([0, 0], [$idle['reservations'], $idle['nights']]);
+        self::assertEqualsWithDelta(20.0, $idle['softwareCost'], 0.001);
+        self::assertEqualsWithDelta(2.5, $none['guestyCost'], 0.001);
+        self::assertEqualsWithDelta(0.0, $none['conciergeTtc'], 0.001);
     }
 
     public function testBeyondFeesAreAddedToTheSoftwareCostOfTheMonthOfTheCheckOutInParis(): void
     {
         $this->issue();
+        $this->dashboard->guestyCosts = [new GuestyCost('prop-1', '2026-09', 1790), new GuestyCost('prop-2', '2026-09', 1790)];
         $cost = static fn(string $property, string $checkOut, int $cents): ReservationCost => new ReservationCost($property, new DateTimeImmutable($checkOut . ' UTC'), $cents);
         $this->dashboard->beyondFees = [
             $cost('prop-1', '2026-09-14 08:00:00', 545),
@@ -186,12 +227,12 @@ final class DashboardTest extends AuthTestCase
         $studio = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-2'))[0];
         $none = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === null))[0];
         self::assertEqualsWithDelta(17.9 + 5.45 + 1.0, $villa['softwareCost'], 0.001);
-        // Le coût se détaille : la part fixe du réglage (Guesty) et les frais Beyond.
+        // Le coût se détaille : l'abonnement Guesty et les frais Beyond.
         self::assertEqualsWithDelta(17.9, $villa['guestyCost'], 0.001);
         self::assertEqualsWithDelta(6.45, $villa['beyondCost'], 0.001);
         self::assertEqualsWithDelta(0.0, $none['guestyCost'], 0.001);
         self::assertEqualsWithDelta(17.9 - 2.45, $studio['softwareCost'], 0.001);
-        self::assertEqualsWithDelta(3.0, $none['softwareCost'], 0.001, 'pas de coût fixe sans logement');
+        self::assertEqualsWithDelta(3.0, $none['softwareCost'], 0.001, 'seulement Beyond sans logement');
     }
 
     public function testTheSumOfTheRecordsEqualsTheInvoiceTotalsToTheCent(): void
@@ -285,7 +326,7 @@ final class DashboardTest extends AuthTestCase
         self::assertSame(['prop-1', 'prop-2'], array_map(static fn(array $r): mixed => $r['propertyId'], $this->sorted($mine['records'])));
         self::assertSame(['prop-b'], array_map(static fn(array $r): mixed => $r['propertyId'], $this->sorted($theirs['records'])));
         self::assertSame(['Chalet'], array_map(static fn(array $p): mixed => $p['name'], $this->properties($theirs)));
-        // Pas de coût logiciel renseigné chez l'autre tenant.
+        // Aucun coût logiciel importé chez l'autre tenant.
         self::assertEqualsWithDelta(0.0, $this->sorted($theirs['records'])[0]['softwareCost'], 0.001);
     }
 

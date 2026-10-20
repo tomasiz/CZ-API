@@ -20,7 +20,7 @@ final readonly class PropertyMonth
         public int $linenTtcCents,
         public int $disbursementHtCents,
         public int $disbursementTtcCents,
-        /** Coût logiciel fixe du réglage de l'entreprise (la part Guesty) ; jamais pour la ligne « sans logement » */
+        /** Abonnement Guesty du logement et du mois (factures importées, converties en euros) */
         public int $guestyCostCents,
         /** Frais Beyond Pricing du logement et du mois du check-out */
         public int $beyondCostCents,

@@ -31,4 +31,12 @@ interface DashboardRepositoryInterface
      * @return list<ReservationCost>
      */
     public function beyondFees(): array;
+
+    /**
+     * Le coût de l'abonnement Guesty par logement et par mois : lignes des factures importées, en euros, sans les lignes déjà
+     * comptées par une autre facture.
+     *
+     * @return list<GuestyCost>
+     */
+    public function guestyCosts(): array;
 }
