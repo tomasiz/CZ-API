@@ -18,7 +18,7 @@ use Casamiza\Domain\Statement\BillingMonth;
  *   nuits (à défaut, à parts égales entre les logements actifs du propriétaire ; à défaut, ligne « sans logement ») ;
  * - le coût logiciel du réglage de l'entreprise est compté une fois par ligne de logement, **plus** les frais Beyond des
  *   réservations de ce logement dont le check-out tombe dans le mois (coût réel, `reservations.beyond_fee`) : les deux
- *   s'additionnent dans `softwareCost`.
+ *   s'additionnent dans `softwareCost`, détaillé en `guestyCost` (réglage) et `beyondCost`.
  */
 final readonly class DashboardService
 {

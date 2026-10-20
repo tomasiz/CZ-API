@@ -20,6 +20,14 @@ final readonly class PropertyMonth
         public int $linenTtcCents,
         public int $disbursementHtCents,
         public int $disbursementTtcCents,
-        public int $softwareCostCents,
+        /** Coût logiciel fixe du réglage de l'entreprise (la part Guesty) ; jamais pour la ligne « sans logement » */
+        public int $guestyCostCents,
+        /** Frais Beyond Pricing du logement et du mois du check-out */
+        public int $beyondCostCents,
     ) {}
+
+    public function softwareCostCents(): int
+    {
+        return $this->guestyCostCents + $this->beyondCostCents;
+    }
 }

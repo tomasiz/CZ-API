@@ -51,7 +51,8 @@ final class MonthCell
             $amount(BilledCategory::Linen, 'ttc'),
             $amount(BilledCategory::Disbursement, 'ht'),
             $amount(BilledCategory::Disbursement, 'ttc'),
-            ($this->propertyId === null ? 0 : $fixedCostCents) + $variableCostCents,
+            $this->propertyId === null ? 0 : $fixedCostCents,
+            $variableCostCents,
         );
     }
 }

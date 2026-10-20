@@ -35,7 +35,9 @@ final class DashboardResource
                 'linenTtc' => $r->linenTtcCents / 100,
                 'disbursementHt' => $r->disbursementHtCents / 100,
                 'disbursementTtc' => $r->disbursementTtcCents / 100,
-                'softwareCost' => $r->softwareCostCents / 100,
+                'guestyCost' => $r->guestyCostCents / 100,
+                'beyondCost' => $r->beyondCostCents / 100,
+                'softwareCost' => $r->softwareCostCents() / 100,
             ], $overview->records),
         ];
     }

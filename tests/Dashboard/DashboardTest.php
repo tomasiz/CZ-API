@@ -186,6 +186,10 @@ final class DashboardTest extends AuthTestCase
         $studio = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-2'))[0];
         $none = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === null))[0];
         self::assertEqualsWithDelta(17.9 + 5.45 + 1.0, $villa['softwareCost'], 0.001);
+        // Le coût se détaille : la part fixe du réglage (Guesty) et les frais Beyond.
+        self::assertEqualsWithDelta(17.9, $villa['guestyCost'], 0.001);
+        self::assertEqualsWithDelta(6.45, $villa['beyondCost'], 0.001);
+        self::assertEqualsWithDelta(0.0, $none['guestyCost'], 0.001);
         self::assertEqualsWithDelta(17.9 - 2.45, $studio['softwareCost'], 0.001);
         self::assertEqualsWithDelta(3.0, $none['softwareCost'], 0.001, 'pas de coût fixe sans logement');
     }
