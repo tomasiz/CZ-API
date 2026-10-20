@@ -235,6 +235,25 @@ final class DashboardTest extends AuthTestCase
         self::assertEqualsWithDelta(3.0, $none['softwareCost'], 0.001, 'seulement Beyond sans logement');
     }
 
+    public function testABeyondFeeOnAListingWithoutRevenueStillHasItsLineInABilledMonth(): void
+    {
+        $this->issue();
+        $this->dashboard->beyondFees = [
+            // Annulation facturée par Beyond sur un logement sans revenu facturé en septembre : sa ligne porte le coût
+            new ReservationCost('prop-idle', new DateTimeImmutable('2026-09-10 08:00:00 UTC'), 450),
+            // Mois pas facturé : rien
+            new ReservationCost('prop-idle', new DateTimeImmutable('2026-12-10 08:00:00 UTC'), 999),
+        ];
+
+        $records = $this->records();
+
+        self::assertCount(3, $records);
+        $idle = array_values(array_filter($records, static fn(array $r): bool => $r['propertyId'] === 'prop-idle'))[0];
+        self::assertSame([0, 0], [$idle['reservations'], $idle['nights']]);
+        self::assertEqualsWithDelta(4.5, $idle['beyondCost'], 0.001);
+        self::assertEqualsWithDelta(4.5, $idle['softwareCost'], 0.001);
+    }
+
     public function testTheSumOfTheRecordsEqualsTheInvoiceTotalsToTheCent(): void
     {
         $invoice = $this->issue();

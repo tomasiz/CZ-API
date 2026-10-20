@@ -74,9 +74,10 @@ final readonly class DashboardService
         // Les clés des cellules sont « logement|mois » : les mois facturés.
         $billedMonths = array_flip(array_map(static fn(string $key): string => substr($key, (int) strrpos($key, '|') + 1), array_keys($cells)));
         foreach ($this->dashboard->beyondFees() as $fee) {
-            // Un coût sans logement connu (titre d'annonce inconnu) a sa propre ligne « sans logement », si le mois est facturé.
-            if ($fee->propertyId === null && isset($billedMonths[BillingMonth::of($fee->checkOut)])) {
-                $cell(null, BillingMonth::of($fee->checkOut));
+            // Un frais sans revenu ce mois-là (annulation, séjour propriétaire) ou sans logement connu (titre d'annonce inconnu)
+            // a quand même sa ligne, si le mois est facturé : sinon il serait compté nulle part.
+            if (isset($billedMonths[BillingMonth::of($fee->checkOut)])) {
+                $cell($fee->propertyId, BillingMonth::of($fee->checkOut));
             }
             $key = ($fee->propertyId ?? '') . '|' . BillingMonth::of($fee->checkOut);
             $beyond[$key] = ($beyond[$key] ?? 0) + $fee->cents;
