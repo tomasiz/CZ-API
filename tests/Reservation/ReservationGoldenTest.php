@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Casamiza\Tests\Reservation;
 
 use Casamiza\Domain\Guesty\GuestyReservation;
+use Casamiza\Domain\Reservation\FlagReason;
 use Casamiza\Domain\Reservation\Reservation;
 use Casamiza\Domain\Reservation\ReservationCalculator;
 use Casamiza\Domain\Reservation\StripeFees;
@@ -73,7 +74,10 @@ final class ReservationGoldenTest extends TestCase
 
         $flags = [];
         foreach ($result->flags as $flag) {
-            $flags[$flag->field->value] = $flag->reason->value;
+            // Contrôle ajouté depuis Facturiza (qui ne connaît pas le coût de linge) : hors comparaison.
+            if ($flag->reason !== FlagReason::CleaningFeeMismatch) {
+                $flags[$flag->field->value] = $flag->reason->value;
+            }
         }
         ksort($flags);
         self::assertSame($case['flags'], $flags);

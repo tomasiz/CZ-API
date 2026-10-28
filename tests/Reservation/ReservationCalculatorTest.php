@@ -241,7 +241,18 @@ final class ReservationCalculatorTest extends TestCase
         $result = $this->calculator->calculate(self::reservation('Booking.com', ['fareCleaning' => 0.0, 'totalFees' => 95.0, 'totalTaxes' => 20.0]), 20.0, 80.0);
 
         self::assertSame(95.0, $result->cleaningFee);
-        self::assertArrayNotHasKey('cleaning_fee', self::flags($result));
+        self::assertSame('cleaning_fee_mismatch', self::flags($result)['cleaning_fee'] ?? null);
+    }
+
+    public function testCleaningBilledToTheGuestMustEqualThePropertyCleaningPlusLinen(): void
+    {
+        $matching = $this->calculator->calculate(self::reservation('Booking.com', ['fareCleaning' => 100.0, 'totalTaxes' => 20.0]), 20.0, 80.0, null, 20.0);
+        $different = $this->calculator->calculate(self::reservation('Booking.com', ['fareCleaning' => 80.0, 'totalTaxes' => 20.0]), 20.0, 80.0, null, 20.0);
+        $noFeeAtAll = $this->calculator->calculate(self::reservation('Booking.com', ['fareCleaning' => 0.0, 'totalFees' => 0.0, 'totalTaxes' => 20.0]), 20.0, 0.0, null, 0.0);
+
+        self::assertArrayNotHasKey('cleaning_fee', self::flags($matching));
+        self::assertSame('cleaning_fee_mismatch', self::flags($different)['cleaning_fee'] ?? null);
+        self::assertArrayNotHasKey('cleaning_fee', self::flags($noFeeAtAll));
     }
 
     public function testMissingCleaningIsFlaggedOnlyIfThePropertyHasACleaningFee(): void

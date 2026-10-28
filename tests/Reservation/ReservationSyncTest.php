@@ -63,7 +63,7 @@ final class ReservationSyncTest extends AuthTestCase
         $this->tenants->integrations[$tenantId] = [Provider::Guesty];
         $this->context->reset();
         $this->context->set($tenantId);
-        $this->properties->add(new Property('prop-' . $tenantId, 'L1', 'owner-' . $tenantId, 'Villa', '', 80.0, 20.0, null));
+        $this->properties->add(new Property('prop-' . $tenantId, 'L1', 'owner-' . $tenantId, 'Villa', '', 80.0, 0.0, null));
         $this->context->reset();
     }
 

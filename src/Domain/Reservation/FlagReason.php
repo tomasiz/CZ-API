@@ -20,4 +20,6 @@ enum FlagReason: string
     case PaymentFeeComputed1_4Percent = 'payment_fee_computed_1_4_percent';
     /** Frais de conciergerie nuls alors que le propriétaire a une commission. */
     case ConciergeFeeZero = 'concierge_fee_zero';
+    /** Ménage facturé au voyageur différent du coût de ménage + du coût de linge du logement. */
+    case CleaningFeeMismatch = 'cleaning_fee_mismatch';
 }

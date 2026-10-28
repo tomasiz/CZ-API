@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Casamiza\Http\Controller;
 
+use Casamiza\Domain\Extra\ExtraService;
 use Casamiza\Domain\Property\PropertyService;
 use Casamiza\Http\Request\Input;
 use Casamiza\Http\Resource\PropertyResource;
@@ -15,13 +16,16 @@ final readonly class PropertyController
 {
     public function __construct(
         private PropertyService $properties,
+        private ExtraService $extras,
         private JsonResponder $json,
     ) {}
 
     public function index(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
+        $vatRates = $this->extras->vatRates();
+
         return $this->json->data($response, array_map(
-            static fn(array $row): array => PropertyResource::toArray($row['property'], $row['ownerName'], $row['ownerActive']),
+            static fn(array $row): array => PropertyResource::toArray($row['property'], $row['ownerName'], $row['ownerActive'], $vatRates),
             $this->properties->list(),
         ));
     }
@@ -43,7 +47,7 @@ final readonly class PropertyController
 
         $result = $this->properties->assignOwner($args['id'], $ownerId);
 
-        return $this->json->data($response, PropertyResource::toArray($result['row']['property'], $result['row']['ownerName'], $result['row']['ownerActive']) + [
+        return $this->json->data($response, PropertyResource::toArray($result['row']['property'], $result['row']['ownerName'], $result['row']['ownerActive'], $this->extras->vatRates()) + [
             'movedReservations' => $result['movedReservations'],
         ]);
     }

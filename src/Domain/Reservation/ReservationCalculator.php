@@ -34,8 +34,9 @@ final readonly class ReservationCalculator
      * @param float $commission commission de conciergerie du propriétaire, en % (à défaut, celle de l'entreprise)
      * @param float $propertyCleaningFee coût de ménage du logement : sert uniquement à signaler un ménage manquant
      * @param ?StripeFees $stripe frais lus chez Stripe, null si aucune lecture n'a été faite
+     * @param float $propertyLinenFee coût de linge du logement : le ménage facturé au voyageur doit valoir ménage + linge
      */
-    public function calculate(Reservation $reservation, float $commission, float $propertyCleaningFee, ?StripeFees $stripe = null): CalculatedAmounts
+    public function calculate(Reservation $reservation, float $commission, float $propertyCleaningFee, ?StripeFees $stripe = null, float $propertyLinenFee = 0.0): CalculatedAmounts
     {
         if ($reservation->platform === Platform::Owner) {
             return CalculatedAmounts::zero();
@@ -117,6 +118,8 @@ final readonly class ReservationCalculator
 
         if ($cleaningFee == 0 && $propertyCleaningFee != 0) {
             $flags[FinancialField::CleaningFee->value] = FlagReason::EmptyOrZeroFromGuesty;
+        } elseif (Rounding::cents($cleaningFee) !== Rounding::cents($propertyCleaningFee + $propertyLinenFee)) {
+            $flags[FinancialField::CleaningFee->value] = FlagReason::CleaningFeeMismatch;
         }
 
         if ($platform->isRetrocommission()) {

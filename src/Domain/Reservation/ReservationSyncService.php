@@ -216,6 +216,7 @@ final readonly class ReservationSyncService
             $owner->commission ?? $defaultCommission,
             $property->cleaningFee,
             $reservation->storedStripeFees(),
+            $property->linenFee,
         ));
     }
 }
