@@ -24,6 +24,7 @@ use Casamiza\Domain\Invoice\Document\DocumentRendererInterface;
 use Casamiza\Domain\Invoice\InvoiceFileStorageInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
+use Casamiza\Domain\OwnerStats\OwnerStatsRepositoryInterface;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Domain\Reservation\ReservationRepositoryInterface;
 use Casamiza\Domain\Statement\InvoicedMonthsInterface;
@@ -63,6 +64,7 @@ use Casamiza\Tests\Support\InMemoryInvoices;
 use Casamiza\Tests\Support\InMemoryLoginAttempts;
 use Casamiza\Tests\Support\InMemoryLogoStorage;
 use Casamiza\Tests\Support\InMemoryOwners;
+use Casamiza\Tests\Support\InMemoryOwnerStats;
 use Casamiza\Tests\Support\InMemoryPasswordResetNotifier;
 use Casamiza\Tests\Support\InMemoryProperties;
 use Casamiza\Tests\Support\InMemoryRefreshTokens;
@@ -107,6 +109,7 @@ abstract class AuthTestCase extends AppTestCase
     protected InMemoryInvoices $invoices;
     protected InMemoryInvoiceFiles $invoiceFiles;
     protected InMemoryDashboard $dashboard;
+    protected InMemoryOwnerStats $ownerStats;
     protected InMemoryBeyondFees $beyondFees;
     protected InMemoryBeyondStatements $beyondStatements;
     protected InMemoryBeyondFiles $beyondFiles;
@@ -159,6 +162,7 @@ abstract class AuthTestCase extends AppTestCase
         $this->invoices = new InMemoryInvoices($context, $this->properties);
         $this->invoiceFiles = new InMemoryInvoiceFiles();
         $this->dashboard = new InMemoryDashboard($context, $this->invoices, $this->properties, $this->owners);
+        $this->ownerStats = new InMemoryOwnerStats($context, $this->invoices, $this->properties, $this->reservations, $this->owners);
         $this->beyondFees = new InMemoryBeyondFees($context, $this->reservations);
         $this->beyondStatements = new InMemoryBeyondStatements($context);
         $this->beyondFiles = new InMemoryBeyondFiles($context);
@@ -209,6 +213,7 @@ abstract class AuthTestCase extends AppTestCase
             InvoiceRepositoryInterface::class => $this->invoices,
             InvoiceFileStorageInterface::class => $this->invoiceFiles,
             DashboardRepositoryInterface::class => $this->dashboard,
+            OwnerStatsRepositoryInterface::class => $this->ownerStats,
             BeyondFeeRepositoryInterface::class => $this->beyondFees,
             BeyondStatementRepositoryInterface::class => $this->beyondStatements,
             BeyondFileStorageInterface::class => $this->beyondFiles,

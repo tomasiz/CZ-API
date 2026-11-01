@@ -16,6 +16,7 @@ use Casamiza\Http\Controller\InvoiceController;
 use Casamiza\Http\Controller\MeController;
 use Casamiza\Http\Controller\OwnerController;
 use Casamiza\Http\Controller\OwnerEmailController;
+use Casamiza\Http\Controller\OwnerStatsController;
 use Casamiza\Http\Controller\PropertyController;
 use Casamiza\Http\Controller\ReservationController;
 use Casamiza\Http\Controller\SearchController;
@@ -115,6 +116,9 @@ return static function (App $app): void {
 
             // Tableau de bord : chiffres figés des factures, administrateurs seulement.
             $api->get('/dashboard', [DashboardController::class, 'index'])->add(new RoleMiddleware(Role::Admin));
+
+            // Statistiques d'un propriétaire : chiffres figés de ses factures, administrateurs seulement.
+            $api->get('/owners/{id}/stats', [OwnerStatsController::class, 'show'])->add(new RoleMiddleware(Role::Admin));
 
             // Saisies locales du propriétaire (SIRET, raison sociale, clé Stripe en écriture seule) : administrateurs seulement.
             $api->group('/owners', function (RouteCollectorProxy $owners): void {

@@ -29,6 +29,7 @@ use Casamiza\Domain\Invoice\InvoiceRepositoryInterface;
 use Casamiza\Domain\Invoice\InvoiceRepositoryInvoicedMonths;
 use Casamiza\Domain\Mail\MailerInterface;
 use Casamiza\Domain\Owner\OwnerRepositoryInterface;
+use Casamiza\Domain\OwnerStats\OwnerStatsRepositoryInterface;
 use Casamiza\Domain\Property\PropertyRepositoryInterface;
 use Casamiza\Domain\Reservation\ReservationRepositoryInterface;
 use Casamiza\Domain\Reservation\StripeFeesGatewayInterface;
@@ -60,6 +61,7 @@ use Casamiza\Infrastructure\Persistence\PdoIntegrationRepository;
 use Casamiza\Infrastructure\Persistence\PdoInvoiceRepository;
 use Casamiza\Infrastructure\Persistence\PdoLoginAttemptRepository;
 use Casamiza\Infrastructure\Persistence\PdoOwnerRepository;
+use Casamiza\Infrastructure\Persistence\PdoOwnerStatsRepository;
 use Casamiza\Infrastructure\Persistence\PdoPropertyRepository;
 use Casamiza\Infrastructure\Persistence\PdoRefreshTokenRepository;
 use Casamiza\Infrastructure\Persistence\PdoReservationRepository;
@@ -124,6 +126,7 @@ return [
     InvoiceRepositoryInterface::class => get(PdoInvoiceRepository::class),
     InvoicedMonthsInterface::class => get(InvoiceRepositoryInvoicedMonths::class),
     DashboardRepositoryInterface::class => get(PdoDashboardRepository::class),
+    OwnerStatsRepositoryInterface::class => get(PdoOwnerStatsRepository::class),
     BeyondFeeRepositoryInterface::class => get(PdoBeyondFeeRepository::class),
     BeyondStatementRepositoryInterface::class => get(PdoBeyondStatementRepository::class),
     BeyondFileStorageInterface::class => static fn(ContainerInterface $c): FileBeyondStorage => new FileBeyondStorage($c->get(Settings::class)->projectRoot . '/storage', $c->get(TenantContext::class)),
