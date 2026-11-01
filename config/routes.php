@@ -32,7 +32,7 @@ use Slim\Routing\RouteCollectorProxy;
 return static function (App $app): void {
     $app->get('/health', HealthController::class);
 
-    $app->group('/api/v1', function (RouteCollectorProxy $v1): void {
+    $app->group('/v1', function (RouteCollectorProxy $v1): void {
         // Publiques : le cookie de refresh impose le contrôle d'origine (CSRF).
         $v1->group('/auth', function (RouteCollectorProxy $auth): void {
             $auth->post('/login', [AuthController::class, 'login']);

@@ -18,7 +18,7 @@ final class AuditLogTest extends AuthTestCase
     /** @param array<string, mixed>|null $json */
     private function call(string $method, string $uri, ?array $json = null, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, $method, '/api/v1' . $uri, $this->bearer($this->accessToken($email)), $json);
+        return $this->request($this->app, $method, '/v1' . $uri, $this->bearer($this->accessToken($email)), $json);
     }
 
     /** @return array{items: list<array<string, mixed>>, total: int, page: int, perPage: int} */
@@ -54,7 +54,7 @@ final class AuditLogTest extends AuthTestCase
         self::assertSame(403, $manager->getStatusCode());
         self::assertSame('forbidden', $this->errorCode($manager));
 
-        $anonymous = $this->request($this->app, 'GET', '/api/v1/audit-log', []);
+        $anonymous = $this->request($this->app, 'GET', '/v1/audit-log', []);
         self::assertSame(401, $anonymous->getStatusCode());
 
         self::assertSame(200, $this->call('GET', '/audit-log')->getStatusCode());
@@ -105,7 +105,7 @@ final class AuditLogTest extends AuthTestCase
         self::assertCount(1, $this->audit->of(AuditAction::RefreshReuseDetected));
 
         $next = $this->refreshCookie($this->login('alice@a.test'));
-        $this->request($this->app, 'POST', '/api/v1/auth/logout', $this->browser(), null, ['refresh_token' => $next]);
+        $this->request($this->app, 'POST', '/v1/auth/logout', $this->browser(), null, ['refresh_token' => $next]);
         self::assertCount(1, $this->audit->of(AuditAction::Logout));
     }
 
@@ -130,7 +130,7 @@ final class AuditLogTest extends AuthTestCase
         $this->call('POST', '/team', ['firstName' => 'Nina', 'lastName' => 'Nouvelle', 'email' => 'nina@a.test', 'role' => 'manager']);
         $token = $this->notifier->sent['nina@a.test'] ?? self::fail('Aucune invitation.');
 
-        $this->request($this->app, 'POST', '/api/v1/auth/activate', $this->browser(), ['token' => $token, 'password' => 'un-mot-de-passe-solide']);
+        $this->request($this->app, 'POST', '/v1/auth/activate', $this->browser(), ['token' => $token, 'password' => 'un-mot-de-passe-solide']);
 
         $entry = $this->audit->of(AuditAction::MemberActivated)[0];
         self::assertSame(['tenant-a', 'Nina Nouvelle'], [$entry->tenantId, $entry->actorLabel]);
@@ -138,9 +138,9 @@ final class AuditLogTest extends AuthTestCase
 
     public function testPasswordResetsAreRecorded(): void
     {
-        $this->request($this->app, 'POST', '/api/v1/auth/forgot-password', $this->browser(), ['email' => 'alice@a.test']);
+        $this->request($this->app, 'POST', '/v1/auth/forgot-password', $this->browser(), ['email' => 'alice@a.test']);
         $token = $this->resetNotifier->sent['alice@a.test'] ?? self::fail('Aucun lien.');
-        $this->request($this->app, 'POST', '/api/v1/auth/reset-password', $this->browser(), ['token' => $token, 'password' => 'un-tout-nouveau-mot-de-passe']);
+        $this->request($this->app, 'POST', '/v1/auth/reset-password', $this->browser(), ['token' => $token, 'password' => 'un-tout-nouveau-mot-de-passe']);
         self::assertCount(1, $this->audit->of(AuditAction::PasswordResetCompleted));
 
         $container = $this->app->getContainer();

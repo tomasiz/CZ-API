@@ -75,7 +75,7 @@ final class DashboardTest extends AuthTestCase
     /** @param array<string, mixed>|null $body */
     private function call(string $method, string $path, ?array $body = null, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, $method, '/api/v1' . $path, $this->bearer($this->accessToken($email)), $body);
+        return $this->request($this->app, $method, '/v1' . $path, $this->bearer($this->accessToken($email)), $body);
     }
 
     /** @return array<string, mixed> */
@@ -110,7 +110,7 @@ final class DashboardTest extends AuthTestCase
 
     public function testIsReservedToAdministrators(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/dashboard')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/dashboard')->getStatusCode());
         $manager = $this->call('GET', '/dashboard', null, 'marc@a.test');
         self::assertSame(403, $manager->getStatusCode());
         self::assertSame('forbidden', $this->errorCode($manager));

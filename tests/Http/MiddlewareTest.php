@@ -33,7 +33,7 @@ final class MiddlewareTest extends AppTestCase
 
     public function testPreflight(): void
     {
-        $response = $this->request($this->app(), 'OPTIONS', '/api/v1/anything', [
+        $response = $this->request($this->app(), 'OPTIONS', '/v1/anything', [
             'Origin' => self::ORIGIN,
             'Access-Control-Request-Method' => 'POST',
         ]);

@@ -76,7 +76,7 @@ final class SearchTest extends AuthTestCase
 
     private function get(string $query, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, 'GET', '/api/v1/search?' . $query, $this->bearer($this->accessToken($email)));
+        return $this->request($this->app, 'GET', '/v1/search?' . $query, $this->bearer($this->accessToken($email)));
     }
 
     /** @return array<string, array{items: list<array<string, mixed>>, total: int}> */
@@ -101,7 +101,7 @@ final class SearchTest extends AuthTestCase
 
     public function testSearchNeedsAnAuthenticatedUser(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/search?q=dupont')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/search?q=dupont')->getStatusCode());
     }
 
     public function testTheQueryIsRequiredAndAtLeastTwoCharactersLong(): void

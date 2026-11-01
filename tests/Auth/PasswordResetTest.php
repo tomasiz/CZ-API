@@ -14,12 +14,12 @@ final class PasswordResetTest extends AuthTestCase
     /** @param array<string, string>|null $headers en-têtes ; par défaut ceux du navigateur du front */
     private function forgot(string $email, ?array $headers = null): ResponseInterface
     {
-        return $this->request($this->app, 'POST', '/api/v1/auth/forgot-password', $headers ?? $this->browser(), ['email' => $email]);
+        return $this->request($this->app, 'POST', '/v1/auth/forgot-password', $headers ?? $this->browser(), ['email' => $email]);
     }
 
     private function reset(string $token, string $password = self::NEW_PASSWORD): ResponseInterface
     {
-        return $this->request($this->app, 'POST', '/api/v1/auth/reset-password', $this->browser(), ['token' => $token, 'password' => $password]);
+        return $this->request($this->app, 'POST', '/v1/auth/reset-password', $this->browser(), ['token' => $token, 'password' => $password]);
     }
 
     private function tokenOf(string $email): string
@@ -162,7 +162,7 @@ final class PasswordResetTest extends AuthTestCase
 
     public function testUnknownFieldsAreRejected(): void
     {
-        $response = $this->request($this->app, 'POST', '/api/v1/auth/reset-password', $this->browser(), ['token' => 'x', 'password' => self::NEW_PASSWORD, 'userId' => 'user-b']);
+        $response = $this->request($this->app, 'POST', '/v1/auth/reset-password', $this->browser(), ['token' => 'x', 'password' => self::NEW_PASSWORD, 'userId' => 'user-b']);
 
         self::assertSame(422, $response->getStatusCode());
         self::assertSame('validation_failed', $this->errorCode($response));
@@ -216,7 +216,7 @@ final class PasswordResetTest extends AuthTestCase
         $this->request(
             $this->app,
             'POST',
-            '/api/v1/team',
+            '/v1/team',
             $this->bearer($this->accessToken('alice@a.test')),
             ['firstName' => 'Nina', 'lastName' => 'Nouvelle', 'email' => $email, 'role' => 'manager'],
         );

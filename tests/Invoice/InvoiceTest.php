@@ -78,7 +78,7 @@ final class InvoiceTest extends AuthTestCase
     /** @param array<string, mixed>|null $body */
     private function call(string $method, string $path, ?array $body = null, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, $method, '/api/v1' . $path, $this->bearer($this->accessToken($email)), $body);
+        return $this->request($this->app, $method, '/v1' . $path, $this->bearer($this->accessToken($email)), $body);
     }
 
     /** @return array<string, mixed> */
@@ -99,7 +99,7 @@ final class InvoiceTest extends AuthTestCase
 
     public function testNeedsAnAuthenticatedAdministrator(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/invoices')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/invoices')->getStatusCode());
         foreach ([['GET', '/invoices'], ['POST', '/invoices'], ['GET', '/invoices/x/json'], ['PATCH', '/invoices/x/payment']] as [$method, $path]) {
             $response = $this->call($method, $path, in_array($method, ['POST', 'PATCH'], true) ? ['ownerId' => 'owner-1', 'month' => '2026-09'] : null, 'marc@a.test');
             self::assertSame(403, $response->getStatusCode(), $method . ' ' . $path);

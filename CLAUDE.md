@@ -100,7 +100,7 @@ Routing. Slim exécute le dernier `add()` en premier.
 - Identifiant de requête dans l'en-tête `X-Request-Id` (toutes les réponses, exposé en CORS), pas dans le corps.
   Logs applicatifs en anglais.
 - À chaque nouveau code, ajouter sa traduction française dans le front (table code → message).
-- Préfixe `/api/v1` pour les routes métier. Clés JSON en **camelCase**, codes d'erreur en `snake_case`.
+- Préfixe `/v1` (le domaine est déjà `api.casamiza.fr`) pour les routes métier. Clés JSON en **camelCase**, codes d'erreur en `snake_case`.
 
 **Erreur métier : quel statut ?** Jamais 200 pour un échec. Le code décrit le cas précis, le statut sa famille.
 

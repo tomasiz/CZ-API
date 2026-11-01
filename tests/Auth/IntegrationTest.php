@@ -9,7 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 
 final class IntegrationTest extends AuthTestCase
 {
-    private const URI = '/api/v1/settings/integrations';
+    private const URI = '/v1/settings/integrations';
 
     private function tokenResponse(string $token = 'guesty-token'): Response
     {

@@ -72,7 +72,7 @@ final class BeyondStatementTest extends AuthTestCase
     private function connectGuesty(): void
     {
         $this->thirdParty->append(self::ok(['access_token' => 't', 'expires_in' => 86400, 'token_type' => 'Bearer']), self::ok(['_id' => 'acc-1']));
-        $response = $this->request($this->app, 'PUT', '/api/v1/settings/integrations/guesty', $this->bearer($this->accessToken()), ['clientId' => 'id-1', 'clientSecret' => 'secret-1']);
+        $response = $this->request($this->app, 'PUT', '/v1/settings/integrations/guesty', $this->bearer($this->accessToken()), ['clientId' => 'id-1', 'clientSecret' => 'secret-1']);
         self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
     }
 
@@ -158,7 +158,7 @@ final class BeyondStatementTest extends AuthTestCase
         $date = date_create_immutable($start);
         $name ??= $date === false ? 'export.csv' : sprintf('transactions-%s_%s.csv', $start, $date->modify('+1 month')->format('Y-m-d'));
         $file = new UploadedFile((new StreamFactory())->createStream($csv), $name, 'text/csv', strlen($csv), UPLOAD_ERR_OK);
-        $request = (new ServerRequestFactory())->createServerRequest('POST', "/api/v1/costs/beyond/statements/{$start}/import", ['REMOTE_ADDR' => '203.0.113.7'])
+        $request = (new ServerRequestFactory())->createServerRequest('POST', "/v1/costs/beyond/statements/{$start}/import", ['REMOTE_ADDR' => '203.0.113.7'])
             ->withHeader('Authorization', 'Bearer ' . $this->accessToken($email))
             ->withParsedBody(['apply' => $apply ? 'true' : 'false'])
             ->withUploadedFiles(['file' => $file]);
@@ -168,7 +168,7 @@ final class BeyondStatementTest extends AuthTestCase
 
     private function get(string $path, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, 'GET', '/api/v1/costs/beyond/statements' . $path, $this->bearer($this->accessToken($email)));
+        return $this->request($this->app, 'GET', '/v1/costs/beyond/statements' . $path, $this->bearer($this->accessToken($email)));
     }
 
     /** @return array<array-key, mixed> */
@@ -224,14 +224,14 @@ final class BeyondStatementTest extends AuthTestCase
 
     public function testManagersAndVisitorsCannotUseTheStatements(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/costs/beyond/statements')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/costs/beyond/statements')->getStatusCode());
 
         $responses = [
             $this->get('', 'marc@a.test'),
             $this->get('/' . self::OCTOBER, 'marc@a.test'),
             $this->get('/' . self::OCTOBER . '/file', 'marc@a.test'),
             $this->import($this->october(), true, email: 'marc@a.test'),
-            $this->request($this->app, 'POST', '/api/v1/costs/beyond/statements/' . self::OCTOBER . '/reprocess', $this->bearer($this->accessToken('marc@a.test')), ['apply' => true]),
+            $this->request($this->app, 'POST', '/v1/costs/beyond/statements/' . self::OCTOBER . '/reprocess', $this->bearer($this->accessToken('marc@a.test')), ['apply' => true]),
         ];
         foreach ($responses as $response) {
             self::assertSame(403, $response->getStatusCode());
@@ -565,7 +565,7 @@ final class BeyondStatementTest extends AuthTestCase
     public function testTheRequestIsValidated(): void
     {
         $token = $this->bearer($this->accessToken());
-        $url = '/api/v1/costs/beyond/statements/' . self::OCTOBER . '/import';
+        $url = '/v1/costs/beyond/statements/' . self::OCTOBER . '/import';
         $noFile = $this->app->handle((new ServerRequestFactory())->createServerRequest('POST', $url, ['REMOTE_ADDR' => '203.0.113.7'])
             ->withHeader('Authorization', $token['Authorization'])
             ->withParsedBody(['apply' => 'false']));
@@ -598,16 +598,16 @@ final class BeyondStatementTest extends AuthTestCase
         self::assertSame('private, no-store', $file->getHeaderLine('Cache-Control'));
 
         $calls = count($this->thirdPartyCalls);
-        $again = $this->request($this->app, 'POST', '/api/v1/costs/beyond/statements/' . self::OCTOBER . '/reprocess', $this->bearer($this->accessToken()), ['apply' => true]);
+        $again = $this->request($this->app, 'POST', '/v1/costs/beyond/statements/' . self::OCTOBER . '/reprocess', $this->bearer($this->accessToken()), ['apply' => true]);
         $report = $this->data($again);
         self::assertSame([true, 5, 0, 5], [$report['applied'], $report['linesRead'], $report['linesNew'], $report['linesKnown']]);
         self::assertSame(1, $this->storedFiles());
         self::assertSame($calls, count($this->thirdPartyCalls));
         self::assertSame(1, $this->rows('statements'));
 
-        $missing = $this->request($this->app, 'POST', '/api/v1/costs/beyond/statements/' . self::SEPTEMBER . '/reprocess', $this->bearer($this->accessToken()), ['apply' => false]);
+        $missing = $this->request($this->app, 'POST', '/v1/costs/beyond/statements/' . self::SEPTEMBER . '/reprocess', $this->bearer($this->accessToken()), ['apply' => false]);
         self::assertSame('statement_not_found', $this->errorCode($missing));
-        $noApply = $this->request($this->app, 'POST', '/api/v1/costs/beyond/statements/' . self::OCTOBER . '/reprocess', $this->bearer($this->accessToken()), []);
+        $noApply = $this->request($this->app, 'POST', '/v1/costs/beyond/statements/' . self::OCTOBER . '/reprocess', $this->bearer($this->accessToken()), []);
         self::assertSame(['apply' => ['required']], $this->fields($noApply));
     }
 

@@ -58,7 +58,7 @@ final class ReservationSyncTest extends AuthTestCase
     private function connect(string $email, string $tenantId): void
     {
         $this->thirdParty->append(self::ok(['access_token' => 't', 'expires_in' => 86400, 'token_type' => 'Bearer']), self::ok(['_id' => 'acc-1']));
-        $response = $this->request($this->app, 'PUT', '/api/v1/settings/integrations/guesty', $this->bearer($this->accessToken($email)), ['clientId' => 'id-1', 'clientSecret' => 'secret-1']);
+        $response = $this->request($this->app, 'PUT', '/v1/settings/integrations/guesty', $this->bearer($this->accessToken($email)), ['clientId' => 'id-1', 'clientSecret' => 'secret-1']);
         self::assertSame(200, $response->getStatusCode());
         $this->tenants->integrations[$tenantId] = [Provider::Guesty];
         $this->context->reset();
@@ -158,7 +158,7 @@ final class ReservationSyncTest extends AuthTestCase
             self::reservation('NOV-PARIS', checkOut: '2026-10-31T23:30:00.000Z'),
         ]));
         // Un gestionnaire peut la lancer, comme la synchronisation des propriétaires et logements.
-        $response = $this->request($this->app, 'POST', '/api/v1/sync/reservations', $this->bearer($this->accessToken('marc@a.test')), ['month' => '2026-10']);
+        $response = $this->request($this->app, 'POST', '/v1/sync/reservations', $this->bearer($this->accessToken('marc@a.test')), ['month' => '2026-10']);
 
         self::assertSame(200, $response->getStatusCode(), (string) $response->getBody());
         $data = $this->json($response)['data'];
@@ -181,11 +181,11 @@ final class ReservationSyncTest extends AuthTestCase
         $token = $this->bearer($this->accessToken('marc@a.test'));
 
         foreach ([[], ['month' => '2026-13'], ['month' => '2024-12'], ['month' => '2026-10', 'since' => 'x']] as $body) {
-            $response = $this->request($this->app, 'POST', '/api/v1/sync/reservations', $token, $body);
+            $response = $this->request($this->app, 'POST', '/v1/sync/reservations', $token, $body);
             self::assertSame(422, $response->getStatusCode(), (string) $response->getBody());
             self::assertSame('validation_failed', $this->errorCode($response));
         }
-        self::assertSame(401, $this->request($this->app, 'POST', '/api/v1/sync/reservations', [], ['month' => '2026-10'])->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'POST', '/v1/sync/reservations', [], ['month' => '2026-10'])->getStatusCode());
     }
 
     public function testASecondRunUpdatesArchivesAndRestores(): void

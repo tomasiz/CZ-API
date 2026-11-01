@@ -237,7 +237,7 @@ abstract class AuthTestCase extends AppTestCase
 
     protected function login(string $email = 'alice@a.test', string $password = self::PASSWORD): ResponseInterface
     {
-        return $this->request($this->app, 'POST', '/api/v1/auth/login', $this->browser(), ['email' => $email, 'password' => $password]);
+        return $this->request($this->app, 'POST', '/v1/auth/login', $this->browser(), ['email' => $email, 'password' => $password]);
     }
 
     protected function accessToken(string $email = 'alice@a.test'): string
@@ -266,7 +266,7 @@ abstract class AuthTestCase extends AppTestCase
 
     protected function refresh(string $cookie): ResponseInterface
     {
-        return $this->request($this->app, 'POST', '/api/v1/auth/refresh', $this->browser(), null, ['refresh_token' => $cookie]);
+        return $this->request($this->app, 'POST', '/v1/auth/refresh', $this->browser(), null, ['refresh_token' => $cookie]);
     }
 
     protected function errorCode(ResponseInterface $response): string

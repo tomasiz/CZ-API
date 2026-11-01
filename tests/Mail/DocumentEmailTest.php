@@ -65,7 +65,7 @@ final class DocumentEmailTest extends AuthTestCase
     /** @param array<string, mixed>|null $body */
     private function call(string $method, string $path, ?array $body = null, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, $method, '/api/v1' . $path, $this->bearer($this->accessToken($email)), $body);
+        return $this->request($this->app, $method, '/v1' . $path, $this->bearer($this->accessToken($email)), $body);
     }
 
     /** @return array<string, mixed> */
@@ -133,7 +133,7 @@ final class DocumentEmailTest extends AuthTestCase
 
     public function testManagersAndVisitorsCannotPrepareOrSend(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/owners/owner-1/email?month=2026-09&documents=recap')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/owners/owner-1/email?month=2026-09&documents=recap')->getStatusCode());
         foreach ([['GET', '/owners/owner-1/email?month=2026-09&documents=recap', null], ['POST', '/owners/owner-1/email', $this->sendBody()]] as [$method, $path, $body]) {
             $response = $this->call($method, $path, $body, 'marc@a.test');
             self::assertSame(403, $response->getStatusCode(), $method);

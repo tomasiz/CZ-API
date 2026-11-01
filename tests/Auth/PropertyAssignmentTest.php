@@ -66,7 +66,7 @@ final class PropertyAssignmentTest extends AuthTestCase
     /** @param array<string, mixed>|null $json */
     private function patch(string $propertyId, ?array $json, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, 'PATCH', '/api/v1/properties/' . $propertyId, $this->bearer($this->accessToken($email)), $json);
+        return $this->request($this->app, 'PATCH', '/v1/properties/' . $propertyId, $this->bearer($this->accessToken($email)), $json);
     }
 
     private function ownerOfReservation(string $id): ?string

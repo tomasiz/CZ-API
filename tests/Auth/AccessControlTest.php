@@ -17,7 +17,7 @@ final class AccessControlTest extends AuthTestCase
 {
     public function testMeRequiresAToken(): void
     {
-        $response = $this->request($this->app, 'GET', '/api/v1/me');
+        $response = $this->request($this->app, 'GET', '/v1/me');
 
         self::assertSame(401, $response->getStatusCode());
         self::assertSame('unauthenticated', $this->errorCode($response));
@@ -25,8 +25,8 @@ final class AccessControlTest extends AuthTestCase
 
     public function testMeReturnsTheTenantOfTheToken(): void
     {
-        $alice = $this->json($this->request($this->app, 'GET', '/api/v1/me', $this->bearer($this->accessToken('alice@a.test'))))['data'];
-        $bob = $this->json($this->request($this->app, 'GET', '/api/v1/me', $this->bearer($this->accessToken('bob@b.test'))))['data'];
+        $alice = $this->json($this->request($this->app, 'GET', '/v1/me', $this->bearer($this->accessToken('alice@a.test'))))['data'];
+        $bob = $this->json($this->request($this->app, 'GET', '/v1/me', $this->bearer($this->accessToken('bob@b.test'))))['data'];
 
         self::assertIsArray($alice);
         self::assertIsArray($bob);
@@ -40,7 +40,7 @@ final class AccessControlTest extends AuthTestCase
         $token = $this->accessToken();
 
         $this->clock->advance('+16 minutes');
-        $response = $this->request($this->app, 'GET', '/api/v1/me', $this->bearer($token));
+        $response = $this->request($this->app, 'GET', '/v1/me', $this->bearer($token));
 
         self::assertSame(401, $response->getStatusCode());
         self::assertSame('token_expired', $this->errorCode($response));
@@ -52,7 +52,7 @@ final class AccessControlTest extends AuthTestCase
 
         $this->clock->advance('+14 minutes');
 
-        self::assertSame(200, $this->request($this->app, 'GET', '/api/v1/me', $this->bearer($token))->getStatusCode());
+        self::assertSame(200, $this->request($this->app, 'GET', '/v1/me', $this->bearer($token))->getStatusCode());
     }
 
     public function testForgedTokensAreRejected(): void
@@ -72,7 +72,7 @@ final class AccessControlTest extends AuthTestCase
         ])) . '.';
 
         foreach ([$wrongSecret, $unsigned, 'not-a-jwt'] as $token) {
-            $response = $this->request($this->app, 'GET', '/api/v1/me', $this->bearer($token));
+            $response = $this->request($this->app, 'GET', '/v1/me', $this->bearer($token));
             self::assertSame(401, $response->getStatusCode());
             self::assertSame('invalid_token', $this->errorCode($response));
         }
@@ -88,7 +88,7 @@ final class AccessControlTest extends AuthTestCase
             ->relatedTo('user-admin')->withClaim('tid', 'tenant-a')->withClaim('role', 'admin')
             ->getToken($config->signer(), $config->signingKey())->toString();
 
-        self::assertSame('invalid_token', $this->errorCode($this->request($this->app, 'GET', '/api/v1/me', $this->bearer($token))));
+        self::assertSame('invalid_token', $this->errorCode($this->request($this->app, 'GET', '/v1/me', $this->bearer($token))));
     }
 
     public function testRoleMiddlewareSeparatesAdminsFromManagers(): void
@@ -110,7 +110,7 @@ final class AccessControlTest extends AuthTestCase
     {
         $token = $this->accessToken('alice@a.test');
 
-        $response = $this->request($this->app, 'PATCH', '/api/v1/me', $this->bearer($token), ['firstName' => 'Alicia']);
+        $response = $this->request($this->app, 'PATCH', '/v1/me', $this->bearer($token), ['firstName' => 'Alicia']);
         $data = $this->json($response)['data'];
 
         self::assertSame(200, $response->getStatusCode());
@@ -124,10 +124,10 @@ final class AccessControlTest extends AuthTestCase
     {
         $token = $this->accessToken();
 
-        $empty = $this->request($this->app, 'PATCH', '/api/v1/me', $this->bearer($token), []);
+        $empty = $this->request($this->app, 'PATCH', '/v1/me', $this->bearer($token), []);
         self::assertSame(422, $empty->getStatusCode());
 
-        $wrongType = $this->request($this->app, 'PATCH', '/api/v1/me', $this->bearer($token), ['firstName' => 42]);
+        $wrongType = $this->request($this->app, 'PATCH', '/v1/me', $this->bearer($token), ['firstName' => 42]);
         $error = $this->json($wrongType)['error'];
         self::assertIsArray($error);
         self::assertSame(['firstName' => ['invalid_type']], $error['fields']);
@@ -137,7 +137,7 @@ final class AccessControlTest extends AuthTestCase
     {
         // Un en-tête ou un paramètre « tenant » est sans effet : seul le claim `tid` compte.
         $token = $this->accessToken('alice@a.test');
-        $response = $this->request($this->app, 'GET', '/api/v1/me?tenant_id=tenant-b', $this->bearer($token) + ['X-Tenant-Id' => 'tenant-b']);
+        $response = $this->request($this->app, 'GET', '/v1/me?tenant_id=tenant-b', $this->bearer($token) + ['X-Tenant-Id' => 'tenant-b']);
         $data = $this->json($response)['data'];
 
         self::assertIsArray($data);

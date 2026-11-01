@@ -29,7 +29,7 @@ final class ExtraTest extends AuthTestCase
     /** @param array<string, mixed>|null $body */
     private function call(string $method, string $path, ?array $body = null, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, $method, '/api/v1' . $path, $this->bearer($this->accessToken($email)), $body);
+        return $this->request($this->app, $method, '/v1' . $path, $this->bearer($this->accessToken($email)), $body);
     }
 
     /** @return array<string, mixed> */
@@ -55,7 +55,7 @@ final class ExtraTest extends AuthTestCase
 
     public function testNeedsAnAuthenticatedUser(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/owners/owner-1/extras?month=2026-09')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/owners/owner-1/extras?month=2026-09')->getStatusCode());
     }
 
     public function testAnExtraIsCreatedWithTheTtcPriceAndTheDefaultVatOfItsType(): void

@@ -13,7 +13,7 @@ use Psr\Http\Message\ServerRequestInterface;
 /** Cookie `HttpOnly` du refresh token, limité aux routes d'authentification. */
 final readonly class RefreshCookie
 {
-    private const PATH = '/api/v1/auth';
+    private const PATH = '/v1/auth';
 
     public function __construct(private Settings $settings) {}
 

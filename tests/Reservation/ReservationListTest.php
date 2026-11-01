@@ -83,7 +83,7 @@ final class ReservationListTest extends AuthTestCase
 
     private function get(string $query = '', string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, 'GET', '/api/v1/reservations' . ($query === '' ? '' : '?' . $query), $this->bearer($this->accessToken($email)));
+        return $this->request($this->app, 'GET', '/v1/reservations' . ($query === '' ? '' : '?' . $query), $this->bearer($this->accessToken($email)));
     }
 
     /** @return array<string, mixed> */
@@ -108,7 +108,7 @@ final class ReservationListTest extends AuthTestCase
 
     public function testListNeedsAnAuthenticatedUser(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/reservations')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/reservations')->getStatusCode());
     }
 
     public function testManagersCanReadReservations(): void

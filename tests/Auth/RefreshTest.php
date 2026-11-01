@@ -34,7 +34,7 @@ final class RefreshTest extends AuthTestCase
 
     public function testMissingOrUnknownCookieIsRejected(): void
     {
-        $missing = $this->request($this->app, 'POST', '/api/v1/auth/refresh', $this->browser());
+        $missing = $this->request($this->app, 'POST', '/v1/auth/refresh', $this->browser());
         self::assertSame('invalid_refresh_token', $this->errorCode($missing));
         self::assertSame('invalid_refresh_token', $this->errorCode($this->refresh('deadbeef')));
     }
@@ -79,7 +79,7 @@ final class RefreshTest extends AuthTestCase
     public function testRefreshIsRejectedForAForeignOrigin(): void
     {
         $cookie = $this->refreshCookie($this->login());
-        $response = $this->request($this->app, 'POST', '/api/v1/auth/refresh', ['Origin' => 'https://evil.example'], null, ['refresh_token' => $cookie]);
+        $response = $this->request($this->app, 'POST', '/v1/auth/refresh', ['Origin' => 'https://evil.example'], null, ['refresh_token' => $cookie]);
 
         self::assertSame('forbidden_origin', $this->errorCode($response));
     }
@@ -88,7 +88,7 @@ final class RefreshTest extends AuthTestCase
     {
         $cookie = $this->refreshCookie($this->login());
 
-        $logout = $this->request($this->app, 'POST', '/api/v1/auth/logout', $this->browser(), null, ['refresh_token' => $cookie]);
+        $logout = $this->request($this->app, 'POST', '/v1/auth/logout', $this->browser(), null, ['refresh_token' => $cookie]);
 
         self::assertSame(204, $logout->getStatusCode());
         self::assertStringContainsString('Max-Age=0', $logout->getHeaderLine('Set-Cookie'));
@@ -97,6 +97,6 @@ final class RefreshTest extends AuthTestCase
 
     public function testLogoutWithoutCookieIsHarmless(): void
     {
-        self::assertSame(204, $this->request($this->app, 'POST', '/api/v1/auth/logout', $this->browser())->getStatusCode());
+        self::assertSame(204, $this->request($this->app, 'POST', '/v1/auth/logout', $this->browser())->getStatusCode());
     }
 }

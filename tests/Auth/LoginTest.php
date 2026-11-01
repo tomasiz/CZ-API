@@ -23,7 +23,7 @@ final class LoginTest extends AuthTestCase
         self::assertStringContainsString('HttpOnly', $cookie);
         self::assertStringContainsString('Secure', $cookie);
         self::assertStringContainsString('SameSite=None', $cookie);
-        self::assertStringContainsString('Path=/api/v1/auth', $cookie);
+        self::assertStringContainsString('Path=/v1/auth', $cookie);
     }
 
     public function testWrongPasswordAndUnknownEmailGiveTheSameError(): void
@@ -45,7 +45,7 @@ final class LoginTest extends AuthTestCase
 
     public function testValidationErrorsListCodesPerField(): void
     {
-        $response = $this->request($this->app, 'POST', '/api/v1/auth/login', $this->browser(), ['email' => 'not-an-email']);
+        $response = $this->request($this->app, 'POST', '/v1/auth/login', $this->browser(), ['email' => 'not-an-email']);
         $error = $this->json($response)['error'];
 
         self::assertSame(422, $response->getStatusCode());
@@ -77,7 +77,7 @@ final class LoginTest extends AuthTestCase
 
     public function testCrossSiteOriginIsRejected(): void
     {
-        $response = $this->request($this->app, 'POST', '/api/v1/auth/login', ['Origin' => 'https://evil.example'], ['email' => 'alice@a.test', 'password' => self::PASSWORD]);
+        $response = $this->request($this->app, 'POST', '/v1/auth/login', ['Origin' => 'https://evil.example'], ['email' => 'alice@a.test', 'password' => self::PASSWORD]);
 
         self::assertSame(403, $response->getStatusCode());
         self::assertSame('forbidden_origin', $this->errorCode($response));

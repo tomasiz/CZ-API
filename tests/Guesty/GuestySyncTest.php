@@ -14,7 +14,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 final class GuestySyncTest extends AuthTestCase
 {
-    private const SYNC = '/api/v1/sync/guesty';
+    private const SYNC = '/v1/sync/guesty';
 
     /** @param array<array-key, mixed> $body */
     private static function ok(array $body): Response
@@ -88,7 +88,7 @@ final class GuestySyncTest extends AuthTestCase
     private function connect(string $email = 'alice@a.test'): void
     {
         $this->thirdParty->append(self::token(), self::ok(['_id' => 'acc-1']));
-        $response = $this->request($this->app, 'PUT', '/api/v1/settings/integrations/guesty', $this->bearer($this->accessToken($email)), ['clientId' => 'id-1', 'clientSecret' => 'secret-1']);
+        $response = $this->request($this->app, 'PUT', '/v1/settings/integrations/guesty', $this->bearer($this->accessToken($email)), ['clientId' => 'id-1', 'clientSecret' => 'secret-1']);
         self::assertSame(200, $response->getStatusCode());
     }
 
@@ -116,7 +116,7 @@ final class GuestySyncTest extends AuthTestCase
     /** @return list<array<string, mixed>> */
     private function listOf(string $path, string $email = 'alice@a.test'): array
     {
-        $response = $this->request($this->app, 'GET', '/api/v1' . $path, $this->bearer($this->accessToken($email)));
+        $response = $this->request($this->app, 'GET', '/v1' . $path, $this->bearer($this->accessToken($email)));
         self::assertSame(200, $response->getStatusCode());
         $data = $this->json($response)['data'];
         self::assertIsArray($data);

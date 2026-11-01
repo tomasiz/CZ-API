@@ -61,7 +61,7 @@ final class GuestyCostTest extends AuthTestCase
     private function import(string $bytes, bool $apply, string $name = self::OCTOBER, string $email = 'alice@a.test'): ResponseInterface
     {
         $file = new UploadedFile((new StreamFactory())->createStream($bytes), $name, 'application/vnd.ms-excel', strlen($bytes), UPLOAD_ERR_OK);
-        $request = (new ServerRequestFactory())->createServerRequest('POST', '/api/v1/costs/guesty/import', ['REMOTE_ADDR' => '203.0.113.7'])
+        $request = (new ServerRequestFactory())->createServerRequest('POST', '/v1/costs/guesty/import', ['REMOTE_ADDR' => '203.0.113.7'])
             ->withHeader('Authorization', 'Bearer ' . $this->accessToken($email))
             ->withParsedBody(['apply' => $apply ? 'true' : 'false'])
             ->withUploadedFiles(['file' => $file]);
@@ -71,7 +71,7 @@ final class GuestyCostTest extends AuthTestCase
 
     private function get(string $path, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, 'GET', '/api/v1/costs/guesty' . $path, $this->bearer($this->accessToken($email)));
+        return $this->request($this->app, 'GET', '/v1/costs/guesty' . $path, $this->bearer($this->accessToken($email)));
     }
 
     /** @return array<array-key, mixed> */
@@ -107,7 +107,7 @@ final class GuestyCostTest extends AuthTestCase
 
     public function testManagersAndVisitorsCannotUseTheInvoices(): void
     {
-        self::assertSame(401, $this->request($this->app, 'GET', '/api/v1/costs/guesty/invoices')->getStatusCode());
+        self::assertSame(401, $this->request($this->app, 'GET', '/v1/costs/guesty/invoices')->getStatusCode());
 
         foreach ([
             $this->get('/invoices', 'marc@a.test'),
@@ -303,7 +303,7 @@ final class GuestyCostTest extends AuthTestCase
 
     private function delete(string $number, string $email = 'alice@a.test'): ResponseInterface
     {
-        return $this->request($this->app, 'DELETE', '/api/v1/costs/guesty/invoices/' . $number, $this->bearer($this->accessToken($email)));
+        return $this->request($this->app, 'DELETE', '/v1/costs/guesty/invoices/' . $number, $this->bearer($this->accessToken($email)));
     }
 
     public function testDeletingAnInvoiceRemovesItsLinesItsFileAndIsAudited(): void

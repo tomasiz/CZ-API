@@ -12,7 +12,7 @@ use Slim\Psr7\UploadedFile;
 /** Identité de l'entreprise du tenant : mentions légales, contact, modèles d'e-mail et logo (admin seulement). */
 final class CompanySettingsTest extends AuthTestCase
 {
-    private const URI = '/api/v1/settings/company';
+    private const URI = '/v1/settings/company';
 
     /** PNG de 1 × 1 pixel. */
     private const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==';
