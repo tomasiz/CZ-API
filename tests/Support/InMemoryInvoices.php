@@ -140,6 +140,25 @@ final class InMemoryInvoices implements InvoiceRepositoryInterface
         ));
     }
 
+    public function invoicedReservationIds(array $reservationIds): array
+    {
+        $prefix = $this->context->id() . '|';
+        $invoiced = [];
+        foreach ($this->reservations as $key => $activity) {
+            $invoice = $this->rows[$key] ?? null;
+            if (!str_starts_with($key, $prefix) || $invoice === null || $invoice->isCancelled()) {
+                continue;
+            }
+            foreach ($activity as $reservation) {
+                if ($reservation->reservationId !== null && in_array($reservation->reservationId, $reservationIds, true)) {
+                    $invoiced[$reservation->reservationId] = true;
+                }
+            }
+        }
+
+        return array_map('strval', array_keys($invoiced));
+    }
+
     public function hasActive(string $ownerId, string $month): bool
     {
         foreach ($this->all() as $invoice) {

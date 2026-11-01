@@ -116,6 +116,15 @@ final class ReservationListTest extends AuthTestCase
         self::assertSame(3, $this->page('month=2026-09', 'marc@a.test')['total']);
     }
 
+    public function testOnlyAdminsCanSearchByTheOwnersCompanyName(): void
+    {
+        // « SCI Les Pins » est la raison sociale du propriétaire 1 : réservée aux administrateurs, y compris comme texte cherché.
+        self::assertSame(3, $this->page('q=pins')['total'], 'administrateur');
+        self::assertSame(0, $this->page('q=pins', 'marc@a.test')['total'], 'gestionnaire');
+        self::assertSame(1, $this->page('q=marchetti', 'marc@a.test')['total'], 'le reste reste cherchable par un gestionnaire');
+        self::assertSame(3, $this->page('q=martin', 'marc@a.test')['total'], 'nom du propriétaire');
+    }
+
     public function testAMonthListsReservationsByCheckOutOrderedByCheckOutWithoutArchivedOnes(): void
     {
         $page = $this->page('month=2026-09');

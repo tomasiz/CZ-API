@@ -140,7 +140,9 @@ final class PdoReservationRepository extends BaseRepository implements Reservati
             if (preg_match('/^-?\d+,\d+$/', $term) === 1) {
                 $term = str_replace(',', '.', $term);
             }
-            $sql .= " AND CONCAT_WS(' ', r.guest, r.platform_ref, r.guesty_id, r.source, r.platform, p.name, p.address, o.name, o.company_name,"
+            // La raison sociale n'entre dans le texte cherché que pour un administrateur (fragment SQL fixe, jamais une entrée).
+            $company = $query->searchCompanyName ? ' o.company_name,' : '';
+            $sql .= " AND CONCAT_WS(' ', r.guest, r.platform_ref, r.guesty_id, r.source, r.platform, p.name, p.address, o.name,{$company}"
                 . " DATE_FORMAT(r.check_in, '%d/%m/%Y'), DATE_FORMAT(r.check_out, '%d/%m/%Y'), DATE(r.check_in), DATE(r.check_out), r.nights, r.guests,"
                 . ' r.total_payout, r.channel_commission, r.payment_fee, r.tourist_tax, r.cleaning_fee, r.net_payout, r.concierge_fee, r.net_owner_revenue)'
                 . " LIKE :term{$i}";

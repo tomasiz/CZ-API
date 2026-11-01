@@ -39,7 +39,7 @@ final class InMemoryReservations implements ReservationRepositoryInterface
                 }
             }
             $row = new ReservationRow($reservation, $owner->name ?? '', $property->name ?? '');
-            if ($this->matches($row, $query, $owner->companyName ?? '', $property->address ?? '')) {
+            if ($this->matches($row, $query, $query->searchCompanyName ? ($owner->companyName ?? '') : '', $property->address ?? '')) {
                 $rows[] = $row;
             }
         }

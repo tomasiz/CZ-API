@@ -60,6 +60,15 @@ interface InvoiceRepositoryInterface
     public function hasActive(string $ownerId, string $month): bool;
 
     /**
+     * Parmi ces réservations, celles **déjà facturées** sur une facture non annulée (quel que soit le propriétaire de cette
+     * facture : un logement réaffecté à un autre propriétaire ne doit pas refacturer ses anciens séjours).
+     *
+     * @param list<string> $reservationIds
+     * @return list<string> identifiants de réservations
+     */
+    public function invoicedReservationIds(array $reservationIds): array;
+
+    /**
      * Numéros d'origine des factures reprises de Facturiza (pour que relancer l'import ne duplique rien).
      *
      * @return array<int, true>

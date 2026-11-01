@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Casamiza\Http\Controller;
 
+use Casamiza\Domain\Auth\AccessClaims;
 use Casamiza\Domain\Reservation\Platform;
 use Casamiza\Domain\Reservation\ReservationQuery;
 use Casamiza\Domain\Reservation\ReservationService;
 use Casamiza\Domain\Reservation\ReservationSort;
 use Casamiza\Domain\Statement\BillingMonth;
+use Casamiza\Domain\User\Role;
 use Casamiza\Http\Request\Input;
 use Casamiza\Http\Resource\ReservationResource;
 use Casamiza\Http\Response\JsonResponder;
+use Casamiza\Shared\Exception\UnauthorizedException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -29,6 +32,10 @@ final readonly class ReservationController
      */
     public function index(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
+        $claims = $request->getAttribute(AccessClaims::class);
+        if (!$claims instanceof AccessClaims) {
+            throw new UnauthorizedException('unauthenticated');
+        }
         $input = Input::fromBody($request->getQueryParams());
         $input->allowOnly('month', 'ownerId', 'propertyId', 'platform', 'flagged', 'q', 'sort', 'order', 'page', 'perPage');
 
@@ -74,6 +81,7 @@ final readonly class ReservationController
             descending: $order === 'desc',
             page: $input->integer('page', 1, 100_000, 1),
             perPage: $input->integer('perPage', 1, 500, 50),
+            searchCompanyName: $claims->role === Role::Admin,
         );
         $input->assertValid();
 

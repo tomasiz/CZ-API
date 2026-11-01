@@ -7,14 +7,18 @@ namespace Casamiza\Http\Resource;
 use Casamiza\Domain\Owner\Owner;
 use Casamiza\Domain\Property\Property;
 
-/** Représentation JSON d'un propriétaire et de ses logements. La clé Stripe n'est jamais renvoyée, seulement sa présence. */
+/**
+ * Représentation JSON d'un propriétaire et de ses logements. La clé Stripe n'est jamais renvoyée, seulement sa présence.
+ * La raison sociale et le SIRET sont réservés aux administrateurs (comme dans la recherche) : `null` pour un gestionnaire.
+ */
 final class OwnerResource
 {
     /**
      * @param list<Property> $properties
+     * @param bool $admin l'appelant est un administrateur (obligatoire : aucune valeur par défaut qui exposerait les champs réservés)
      * @return array<string, mixed>
      */
-    public static function toArray(Owner $owner, array $properties): array
+    public static function toArray(Owner $owner, array $properties, bool $admin): array
     {
         return [
             'id' => $owner->id,
@@ -26,8 +30,8 @@ final class OwnerResource
             'phone' => $owner->phone,
             'address' => $owner->address,
             'type' => $owner->type->value,
-            'companyName' => $owner->companyName,
-            'siret' => $owner->siret,
+            'companyName' => $admin ? $owner->companyName : null,
+            'siret' => $admin ? $owner->siret : null,
             'commission' => $owner->commission,
             'stripeConfigured' => $owner->hasStripeKey(),
             // Faux pour un propriétaire désactivé (ou disparu) dans Guesty.

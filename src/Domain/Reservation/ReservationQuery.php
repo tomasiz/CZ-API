@@ -17,6 +17,8 @@ final readonly class ReservationQuery
      * @param list<Platform> $platforms plateformes (vide = toutes)
      * @param ?bool $flagged true = au moins un signalement, false = aucun, null = indifférent
      * @param string $search texte libre : chaque mot doit se retrouver dans au moins un élément de la réservation
+     * @param bool $searchCompanyName la raison sociale du propriétaire fait partie des éléments cherchés : réservé aux administrateurs
+     *                                (sinon un gestionnaire la déduirait en tâtonnant), donc faux par défaut
      */
     public function __construct(
         public ?DateTimeImmutable $checkOutFrom = null,
@@ -30,6 +32,7 @@ final readonly class ReservationQuery
         public bool $descending = false,
         public int $page = 1,
         public int $perPage = 50,
+        public bool $searchCompanyName = false,
     ) {}
 
     /** @return list<string> mots de la recherche (séparés par des espaces) */

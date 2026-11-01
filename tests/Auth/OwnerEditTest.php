@@ -112,6 +112,29 @@ final class OwnerEditTest extends AuthTestCase
         self::assertNull($this->owners->rows['tenant-a|owner-1']->stripeSecretEncrypted);
     }
 
+    public function testTheCompanyNameAndSiretAreOnlyReturnedToAdmins(): void
+    {
+        $edit = $this->data($this->call('PATCH', '/v1/owners/owner-1', ['companyName' => 'SCI Les Pins', 'siret' => '12345678901234']));
+        self::assertSame('SCI Les Pins', $edit['companyName']);
+        self::assertSame('12345678901234', $edit['siret']);
+
+        $adminList = $this->json($this->call('GET', '/v1/owners'))['data'];
+        self::assertIsArray($adminList);
+        self::assertSame('SCI Les Pins', $adminList[0]['companyName']);
+        self::assertSame('12345678901234', $adminList[0]['siret']);
+
+        // Un gestionnaire lit la liste (nom, e-mail, commission…) mais pas la raison sociale ni le SIRET.
+        $managerResponse = $this->call('GET', '/v1/owners', null, 'marc@a.test');
+        self::assertSame(200, $managerResponse->getStatusCode());
+        $managerList = $this->json($managerResponse)['data'];
+        self::assertIsArray($managerList);
+        self::assertSame('Alice Martin', $managerList[0]['name']);
+        self::assertNull($managerList[0]['companyName']);
+        self::assertNull($managerList[0]['siret']);
+        self::assertStringNotContainsString('SCI Les Pins', (string) $managerResponse->getBody());
+        self::assertStringNotContainsString('12345678901234', (string) $managerResponse->getBody());
+    }
+
     public function testInvalidInputIsRejectedWithFieldCodes(): void
     {
         $siret = $this->call('PATCH', '/v1/owners/owner-1', ['siret' => '1234']);

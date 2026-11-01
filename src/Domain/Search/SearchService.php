@@ -39,7 +39,7 @@ final readonly class SearchService
         return new SearchResults(
             $this->owners($terms, $limit, $admin),
             $this->properties($terms, $limit),
-            $this->reservations($query, $limit),
+            $this->reservations($query, $limit, $admin),
             $admin ? $this->invoices($terms, $limit) : null,
         );
     }
@@ -97,7 +97,7 @@ final readonly class SearchService
     }
 
     /** @return SearchGroup<\Casamiza\Domain\Reservation\ReservationRow> les plus récentes d'abord (check-out décroissant) */
-    private function reservations(string $query, int $limit): SearchGroup
+    private function reservations(string $query, int $limit, bool $admin): SearchGroup
     {
         $page = $this->reservations->search(new ReservationQuery(
             search: $query,
@@ -105,6 +105,7 @@ final readonly class SearchService
             descending: true,
             page: 1,
             perPage: $limit,
+            searchCompanyName: $admin,
         ));
 
         return new SearchGroup($page->items, $page->total);

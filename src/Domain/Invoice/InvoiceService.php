@@ -345,9 +345,18 @@ final readonly class InvoiceService
     private function billings(string $ownerId, string $month): array
     {
         [$from, $before] = BillingMonth::bounds($month);
-        $byProperty = [];
+        $candidates = [];
         foreach ($this->reservations->checkingOutBetween($from, $before) as $reservation) {
             if ($reservation->ownerId === $ownerId && $reservation->platform !== Platform::Owner) {
+                $candidates[] = $reservation;
+            }
+        }
+        // Une réservation déjà portée par une facture non annulée n'est jamais refacturée : un logement réaffecté à un autre
+        // propriétaire (PropertyService::assignOwner déplace aussi ses anciens séjours) ne doit pas doubler un mois facturé.
+        $invoiced = array_flip($this->invoices->invoicedReservationIds(array_map(static fn(Reservation $r): string => $r->id, $candidates)));
+        $byProperty = [];
+        foreach ($candidates as $reservation) {
+            if (!isset($invoiced[$reservation->id])) {
                 $byProperty[$reservation->propertyId][] = $reservation;
             }
         }

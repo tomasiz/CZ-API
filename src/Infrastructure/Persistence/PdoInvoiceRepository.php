@@ -149,6 +149,28 @@ final class PdoInvoiceRepository extends BaseRepository implements InvoiceReposi
         return $this->selectOne('owner_id = :owner AND month = :month AND cancelled_at IS NULL', ['owner' => $ownerId, 'month' => $month], 'id') !== null;
     }
 
+    public function invoicedReservationIds(array $reservationIds): array
+    {
+        if ($reservationIds === []) {
+            return [];
+        }
+        // Un paramètre nommé par identifiant (le texte SQL ne dépend que du nombre d'identifiants, jamais de leurs valeurs).
+        $params = ['tenant' => $this->tenant->id()];
+        $placeholders = [];
+        foreach ($reservationIds as $i => $id) {
+            $placeholders[] = ":r{$i}";
+            $params["r{$i}"] = $id;
+        }
+        $statement = $this->pdo()->prepare(
+            'SELECT DISTINCT ir.reservation_id FROM invoice_reservations ir
+             JOIN invoices i ON i.tenant_id = ir.tenant_id AND i.id = ir.invoice_id
+             WHERE ir.tenant_id = :tenant AND i.cancelled_at IS NULL AND ir.reservation_id IN (' . implode(', ', $placeholders) . ')',
+        );
+        $statement->execute($params);
+
+        return array_values(array_map(static fn(array $row): string => (string) $row['reservation_id'], $statement->fetchAll()));
+    }
+
     public function legacyIds(): array
     {
         $ids = [];

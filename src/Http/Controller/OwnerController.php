@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Casamiza\Http\Controller;
 
+use Casamiza\Domain\Auth\AccessClaims;
 use Casamiza\Domain\Owner\OwnerService;
+use Casamiza\Domain\User\Role;
 use Casamiza\Http\Request\Input;
 use Casamiza\Http\Resource\OwnerResource;
 use Casamiza\Http\Response\JsonResponder;
+use Casamiza\Shared\Exception\UnauthorizedException;
 use Casamiza\Shared\Exception\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,10 +22,17 @@ final readonly class OwnerController
         private JsonResponder $json,
     ) {}
 
+    /** Tous les rôles ; la raison sociale et le SIRET ne sont renvoyés qu'aux administrateurs. */
     public function index(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
+        $claims = $request->getAttribute(AccessClaims::class);
+        if (!$claims instanceof AccessClaims) {
+            throw new UnauthorizedException('unauthenticated');
+        }
+        $admin = $claims->role === Role::Admin;
+
         return $this->json->data($response, array_map(
-            static fn(array $row): array => OwnerResource::toArray($row['owner'], $row['properties']),
+            static fn(array $row): array => OwnerResource::toArray($row['owner'], $row['properties'], $admin),
             $this->owners->list(),
         ));
     }
@@ -57,7 +67,8 @@ final readonly class OwnerController
 
         $row = $this->owners->update($args['id'], $companyName, $siret, $stripeKey);
 
-        return $this->json->data($response, OwnerResource::toArray($row['owner'], $row['properties']));
+        // Route réservée aux administrateurs (RoleMiddleware) : ils voient la raison sociale et le SIRET qu'ils viennent de saisir.
+        return $this->json->data($response, OwnerResource::toArray($row['owner'], $row['properties'], true));
     }
 
     /** @param array<string, string> $args */
@@ -65,6 +76,7 @@ final readonly class OwnerController
     {
         $row = $this->owners->removeStripeKey($args['id']);
 
-        return $this->json->data($response, OwnerResource::toArray($row['owner'], $row['properties']));
+        // Route réservée aux administrateurs (RoleMiddleware).
+        return $this->json->data($response, OwnerResource::toArray($row['owner'], $row['properties'], true));
     }
 }

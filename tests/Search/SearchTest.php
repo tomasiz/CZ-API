@@ -147,6 +147,13 @@ final class SearchTest extends AuthTestCase
         self::assertSame('SCI Les Pins', $this->results('q=helene')['owners']['items'][0]['companyName']);
     }
 
+    public function testManagersCannotReachTheCompanyNameThroughTheReservationsGroup(): void
+    {
+        // Le groupe « réservations » interroge la même recherche que GET /reservations : la raison sociale n'en fait pas partie pour un gestionnaire.
+        self::assertSame([], $this->results('q=' . rawurlencode('SCI Les Pins'), 'marc@a.test')['reservations']['items']);
+        self::assertNotSame([], $this->results('q=' . rawurlencode('SCI Les Pins'))['reservations']['items']);
+    }
+
     public function testPropertiesAreFoundByNameAddressAndOwnerName(): void
     {
         self::assertSame(['prop-1'], self::ids($this->results('q=santa')['properties']));
