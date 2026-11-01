@@ -41,10 +41,10 @@ echo "→ Conteneur compilé supprimé (régénéré à la première requête)"
 rm -f storage/cache/CompiledContainer*.php
 
 echo "→ Migrations en attente :"
-"$PHP_BIN" vendor/bin/phinx status | grep -E "^\s+down" || echo "  aucune"
+"$PHP_BIN" vendor/bin/phinx status -e default | grep -E "^\s+down" || echo "  aucune"
 
 echo "→ Migrations"
-"$PHP_BIN" vendor/bin/phinx migrate
+"$PHP_BIN" vendor/bin/phinx migrate -e default
 
 echo "→ Contrôle de l'application"
 "$PHP_BIN" bin/console list >/dev/null
