@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Casamiza\Tests\Dashboard;
 
+use Casamiza\Domain\Cost\BeyondPeriod;
+use Casamiza\Domain\Cost\BeyondStatement;
 use Casamiza\Domain\Dashboard\GuestyCost;
 use Casamiza\Domain\Dashboard\ReservationCost;
 use Casamiza\Domain\Extra\Extra;
@@ -319,6 +321,66 @@ final class DashboardTest extends AuthTestCase
         // Revenu : seulement les frais de conciergerie ; débours : ménage (30) + commission Abritel (50).
         self::assertEqualsWithDelta(20.0, $august[0]['conciergeTtc'], 0.001);
         self::assertEqualsWithDelta(80.0, $august[0]['disbursementTtc'], 0.001);
+    }
+
+    /** @return list<array{month: string, guesty: bool, beyond: bool}> */
+    private function costGaps(): array
+    {
+        /** @var list<array{month: string, guesty: bool, beyond: bool}> $gaps */
+        $gaps = $this->data($this->call('GET', '/dashboard'))['costGaps'];
+
+        return $gaps;
+    }
+
+    private function processStatement(int $year, int $month): void
+    {
+        $period = BeyondPeriod::of($year, $month);
+        $this->context->reset();
+        $this->context->set('tenant-a');
+        $this->beyondStatements->save(new BeyondStatement('stmt-' . $period->key(), $period, 'f.csv', 'p', 'sha', 1, 1, 100, new DateTimeImmutable('2026-10-13 10:00:00 UTC')));
+        $this->context->reset();
+    }
+
+    public function testAMonthWithoutGuestyInvoiceNorBeyondStatementIsFlaggedIncomplete(): void
+    {
+        self::assertSame([], $this->costGaps());
+
+        $this->issue();
+
+        self::assertSame([['month' => '2026-09', 'guesty' => true, 'beyond' => true]], $this->costGaps());
+    }
+
+    public function testAMonthWithBothCostsImportedIsComplete(): void
+    {
+        $this->issue();
+        $this->dashboard->guestyCosts = [new GuestyCost('prop-1', '2026-09', 1790)];
+        $this->processStatement(2026, 8);
+        $this->processStatement(2026, 9);
+
+        self::assertSame([], $this->costGaps());
+    }
+
+    public function testOneMissingBeyondStatementOfTheTwoCoveringTheMonthIsEnough(): void
+    {
+        $this->issue();
+        $this->dashboard->guestyCosts = [new GuestyCost('prop-1', '2026-09', 1790)];
+        $this->processStatement(2026, 9);
+
+        self::assertSame([['month' => '2026-09', 'guesty' => false, 'beyond' => true]], $this->costGaps());
+    }
+
+    public function testAnotherTenantsStatementsDoNotCompleteTheMonth(): void
+    {
+        $this->issue();
+        $this->dashboard->guestyCosts = [new GuestyCost('prop-1', '2026-09', 1790)];
+        $this->context->reset();
+        $this->context->set('tenant-b');
+        foreach ([BeyondPeriod::of(2026, 8), BeyondPeriod::of(2026, 9)] as $period) {
+            $this->beyondStatements->save(new BeyondStatement('b-' . $period->key(), $period, 'f.csv', 'p', 'sha', 1, 1, 100, new DateTimeImmutable('2026-10-13 10:00:00 UTC')));
+        }
+        $this->context->reset();
+
+        self::assertSame([['month' => '2026-09', 'guesty' => false, 'beyond' => true]], $this->costGaps());
     }
 
     public function testACancelledInvoiceIsIgnored(): void

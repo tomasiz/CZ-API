@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Casamiza\Domain\Dashboard;
 
+use Casamiza\Domain\Cost\BeyondStatementRepositoryInterface;
 use Casamiza\Domain\Statement\BillingMonth;
+use DateTimeImmutable;
+use DateTimeZone;
 
 /**
  * Chiffres du tableau de bord : une ligne par (logement, mois facturé), calculée sur les **factures non annulées** à
@@ -22,6 +25,7 @@ final readonly class DashboardService
 {
     public function __construct(
         private DashboardRepositoryInterface $dashboard,
+        private BeyondStatementRepositoryInterface $beyondStatements,
     ) {}
 
     public function overview(): DashboardOverview
@@ -86,7 +90,8 @@ final readonly class DashboardService
         // Abonnement Guesty : facturé pour chaque annonce active, avec ou sans réservation. Un logement qui n'a rien rapporté ce mois-là
         // (inactif, vacant) a donc sa ligne, pour que la marge reflète le coût réel ; un mois pas encore facturé n'a pas de ligne.
         $guesty = [];
-        foreach ($this->dashboard->guestyCosts() as $cost) {
+        $guestyCosts = $this->dashboard->guestyCosts();
+        foreach ($guestyCosts as $cost) {
             if (!isset($billedMonths[$cost->month])) {
                 continue;
             }
@@ -95,12 +100,58 @@ final readonly class DashboardService
             $guesty[$key] = ($guesty[$key] ?? 0) + $cost->cents;
         }
 
+        $costGaps = $this->costGaps(array_keys($billedMonths), $guestyCosts);
+
         $records = [];
         foreach ($cells as $key => $c) {
             $records[] = $c->toRecord($guesty[$key] ?? 0, $beyond[$key] ?? 0);
         }
         usort($records, static fn(PropertyMonth $a, PropertyMonth $b): int => [$a->month, $a->propertyId ?? ''] <=> [$b->month, $b->propertyId ?? '']);
 
-        return new DashboardOverview($properties, $records);
+        return new DashboardOverview($properties, $records, $costGaps);
+    }
+
+    /**
+     * Mois facturés dont les coûts logiciels sont incomplets :
+     * - Guesty facture d'avance le mois entier : aucun coût Guesty sur aucun logement ce mois-là = facture non importée ;
+     * - les frais Beyond d'un mois viennent des relevés du 12 au 12 qui le couvrent (celui du 12 du mois précédent et celui
+     *   du 12 du mois) : l'un des deux pas traité (à importer, ou période pas encore terminée) = incomplet.
+     *
+     * @param list<string|int> $months mois facturés (AAAA-MM)
+     * @param list<GuestyCost> $guestyCosts
+     * @return list<CostGap> du plus ancien au plus récent
+     */
+    private function costGaps(array $months, array $guestyCosts): array
+    {
+        $months = array_map('strval', $months);
+        sort($months);
+        if ($months === []) {
+            return [];
+        }
+
+        $guestyByMonth = [];
+        foreach ($guestyCosts as $cost) {
+            $guestyByMonth[$cost->month] = ($guestyByMonth[$cost->month] ?? 0) + $cost->cents;
+        }
+
+        $utc = new DateTimeZone('UTC');
+        $first = new DateTimeImmutable($months[0] . '-12', $utc);
+        $last = new DateTimeImmutable($months[count($months) - 1] . '-12', $utc);
+        $processed = [];
+        foreach ($this->beyondStatements->startingBetween($first->modify('-1 month'), $last->modify('+1 day')) as $statement) {
+            $processed[$statement->period->key()] = true;
+        }
+
+        $gaps = [];
+        foreach ($months as $month) {
+            $day = new DateTimeImmutable($month . '-12', $utc);
+            $beyondMissing = !isset($processed[$day->format('Y-m-d')]) || !isset($processed[$day->modify('-1 month')->format('Y-m-d')]);
+            $guestyMissing = ($guestyByMonth[$month] ?? 0) <= 0;
+            if ($beyondMissing || $guestyMissing) {
+                $gaps[] = new CostGap($month, $guestyMissing, $beyondMissing);
+            }
+        }
+
+        return $gaps;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Casamiza\Http\Resource;
 
+use Casamiza\Domain\Dashboard\CostGap;
 use Casamiza\Domain\Dashboard\DashboardOverview;
 use Casamiza\Domain\Dashboard\DashboardProperty;
 use Casamiza\Domain\Dashboard\PropertyMonth;
@@ -11,7 +12,7 @@ use Casamiza\Domain\Dashboard\PropertyMonth;
 /** Représentation JSON du tableau de bord : montants en euros (calculés en centimes entiers). */
 final class DashboardResource
 {
-    /** @return array{properties: list<array<string, mixed>>, records: list<array<string, mixed>>} */
+    /** @return array{properties: list<array<string, mixed>>, records: list<array<string, mixed>>, costGaps: list<array<string, mixed>>} */
     public static function toArray(DashboardOverview $overview): array
     {
         return [
@@ -39,6 +40,11 @@ final class DashboardResource
                 'beyondCost' => $r->beyondCostCents / 100,
                 'softwareCost' => $r->softwareCostCents() / 100,
             ], $overview->records),
+            'costGaps' => array_map(static fn(CostGap $g): array => [
+                'month' => $g->month,
+                'guesty' => $g->guesty,
+                'beyond' => $g->beyond,
+            ], $overview->costGaps),
         ];
     }
 }
